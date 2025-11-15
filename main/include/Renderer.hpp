@@ -1,0 +1,28 @@
+#pragma once
+#include "Shapes/Collection.hpp"
+#include "Utils.hpp"
+#include <algorithm>
+#include <map>
+#include <string>
+#include <vector>
+
+class Renderer {
+  private:
+    int width;
+    int height;
+    Color backgroundColor;
+
+  public:
+    Renderer(int width, int height,
+             const Color &backgroundColor = Color(255, 255, 255, 1.0f));
+
+    Pixels render(const std::vector<Collection *> &collections,
+                  const DrawOptions &options);
+
+    static Pixels blendPixels(const Pixels &pixels);
+    static Pixel blendPixel(const Pixel &background, const Pixel &foreground);
+
+    int getWidth() const { return width; }
+    int getHeight() const { return height; }
+    const Color &getBackgroundColor() const { return backgroundColor; }
+};
