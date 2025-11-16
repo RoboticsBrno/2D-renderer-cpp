@@ -1,4 +1,4 @@
-name: Simple Build Check
+name: ESP-IDF Build Check
 
 on:
   push:
@@ -13,16 +13,20 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        submodules: recursive
       
-    - name: Install Dependencies (Ubuntu)
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y build-essential cmake
+    - name: Setup ESP-IDF
+      uses: espressif/esp-idf-ci-action@v1
+      with:
+        esp_idf_version: v5.1.2
+        target: esp32
         
-    - name: Configure and Build
+    - name: Clone ESP32-HUB75-MatrixPanel-I2S-DMA component
       run: |
-        mkdir build
-        cd build
-        cmake ..
-        make
-        ./2D-renderer-cpp
+        git clone https://github.com/mrfaptastic/ESP32-HUB75-MatrixPanel-I2S-DMA.git components/ESP32-HUB75-MatrixPanel-I2S-DMA
+        
+    - name: Build project
+      run: |
+        . $IDF_PATH/export.sh
+        idf.py build
