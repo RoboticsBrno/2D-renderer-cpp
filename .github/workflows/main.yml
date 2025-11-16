@@ -15,16 +15,16 @@ jobs:
       uses: actions/checkout@v4
       with:
         submodules: recursive
+        
+    - name: Clone ESP32-HUB75-MatrixPanel-I2S-DMA component
+      run: |
+        git clone https://github.com/mrfaptastic/ESP32-HUB75-MatrixPanel-I2S-DMA.git components/ESP32-HUB75-MatrixPanel-I2S-DMA
       
     - name: Setup ESP-IDF
       uses: espressif/esp-idf-ci-action@v1
       with:
         esp_idf_version: v5.1.2
         target: esp32s3
-        
-    - name: Clone ESP32-HUB75-MatrixPanel-I2S-DMA component
-      run: |
-        git clone https://github.com/mrfaptastic/ESP32-HUB75-MatrixPanel-I2S-DMA.git components/ESP32-HUB75-MatrixPanel-I2S-DMA
         
     - name: Build project
       run: |
