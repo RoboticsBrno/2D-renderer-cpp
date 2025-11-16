@@ -15,7 +15,8 @@ idf_component_register(SRCS
     INCLUDE_DIRS 
     "include"
     "include/Shapes"
-    REQUIRES)
+    REQUIRES ESP32-HUB75-MatrixPanel-I2S-DMA
+    PRIV_REQUIRES esp_timer)
 
 target_compile_options(${COMPONENT_LIB} PRIVATE 
     -Wno-narrowing
