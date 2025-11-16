@@ -9,13 +9,13 @@ Texture::Texture(const std::vector<std::vector<Color>> &pixels)
     width = height > 0 ? pixels[0].size() : 0;
 }
 
-Color Texture::sample(float u, float v) const {
+Color Texture::sample(int u, int v) const {
     if (width == 0 || height == 0) {
         return Color(0, 0, 0, 1.0f);
     }
 
-    float x = u;
-    float y = v;
+    int x = u;
+    int y = v;
 
     if (std::strcmp(wrapMode, "repeat") == 0) {
         x = fmod(x, static_cast<float>(width));
@@ -25,23 +25,18 @@ Color Texture::sample(float u, float v) const {
         if (y < 0)
             y += height;
     } else {
-        x = std::max(0.0f, std::min(static_cast<float>(width - 1), x));
-        y = std::max(0.0f, std::min(static_cast<float>(height - 1), y));
+        x = std::max(0, std::min(width - 1, x));
+        y = std::max(0, std::min(height - 1, y));
     }
 
-    int xi = static_cast<int>(std::floor(x));
-    int yi = static_cast<int>(std::floor(y));
-
-    if (yi >= 0 && yi < height && xi >= 0 && xi < width) {
-        return pixels[yi][xi];
+    if (y >= 0 && y < height && x >= 0 && x < width) {
+        return pixels[y][x];
     }
 
     return Color(0, 0, 0, 1.0f);
 }
 
 Texture Texture::fromBMP(const uint8_t *data, size_t length) {
-    // BMP loading implementation would go here
-    // For now, return a default texture
     std::vector<std::vector<Color>> defaultPixels = {{{255, 255, 255, 1.0f}}};
     return Texture(defaultPixels);
 }

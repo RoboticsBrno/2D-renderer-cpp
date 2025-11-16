@@ -45,6 +45,7 @@ class HUB75Display {
     int height;
     bool initialized;
     static const char *TAG;
+    Pixels previousBuffer;
 
     HUB75_I2S_CFG::i2s_pins getDefaultPins() {
         return {

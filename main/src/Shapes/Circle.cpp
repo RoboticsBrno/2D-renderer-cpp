@@ -1,4 +1,6 @@
 #include "Circle.hpp"
+#include "../Profiler.hpp"
+#include "../Utils.hpp"
 #include <cmath>
 
 Circle::Circle(const CircleParams &params)
@@ -6,15 +8,16 @@ Circle::Circle(const CircleParams &params)
 
 Collider *Circle::defaultCollider() { return new CircleCollider(x, y, radius); }
 
-std::vector<std::pair<float, float>> Circle::getPointsToDraw(float cx, float cy,
-                                                             float x, float y) {
+int Circle::getRadius() const { return radius; }
+
+std::vector<std::pair<int, int>> Circle::getPointsToDraw(int cx, int cy, int x,
+                                                         int y) {
     return {{cx + x, cy + y}, {cx - x, cy + y}, {cx + x, cy - y},
             {cx - x, cy - y}, {cx + y, cy + x}, {cx - y, cy + x},
             {cx + y, cy - x}, {cx - y, cy - x}};
 }
 
-void Circle::drawCirclePoints(Pixels &points, float cx, float cy, float x,
-                              float y) {
+void Circle::drawCirclePoints(Pixels &points, int cx, int cy, int x, int y) {
     auto pointsToDraw = getPointsToDraw(cx, cy, x, y);
     for (const auto &point : pointsToDraw) {
         Color sampledColor = sampleTexture(point.first, point.second);
@@ -24,16 +27,14 @@ void Circle::drawCirclePoints(Pixels &points, float cx, float cy, float x,
     }
 }
 
-void Circle::drawAntiAliasedPoint(Pixels &points, float cx, float cy, float x,
-                                  float y, float intensity) {
+void Circle::drawAntiAliasedPoint(Pixels &points, int cx, int cy, int x, int y,
+                                  float intensity) {
     auto pointsToDraw = getPointsToDraw(cx, cy, x, y);
     for (const auto &point : pointsToDraw) {
-        int clampedX =
-            static_cast<int>(std::max(0.0f, std::round(point.first)));
-        int clampedY =
-            static_cast<int>(std::max(0.0f, std::round(point.second)));
+        int clampedX = point.first;
+        int clampedY = point.second;
 
-        if (intensity > 0.01f) {
+        if (intensity > 0.01f && clampedX >= 0 && clampedY >= 0) {
             Color sampledColor = sampleTexture(point.first, point.second);
             points.push_back(Pixel(
                 clampedX, clampedY,
@@ -44,41 +45,60 @@ void Circle::drawAntiAliasedPoint(Pixels &points, float cx, float cy, float x,
     }
 }
 
-void Circle::fillCircle(Pixels &points, float cx, float cy, float r) {
-    for (int y = -static_cast<int>(r); y <= static_cast<int>(r); y++) {
-        float xDist = std::sqrt(r * r - y * y);
-        int startX = static_cast<int>(std::ceil(cx - xDist));
-        int endX = static_cast<int>(std::floor(cx + xDist));
+void Circle::fillCircle(Pixels &points, int cx, int cy, int r) {
+    int r2 = r * r;
+    int minY = cy - r;
+    int maxY = cy + r;
+
+    points.reserve(points.size() + (2 * r + 1) * (2 * r + 1));
+
+    for (int y = minY; y <= maxY; y++) {
+        int dy = y - cy;
+        int dy2 = dy * dy;
+
+        if (dy2 > r2)
+            continue;
+
+        int dx = static_cast<int>(std::sqrt(r2 - dy2));
+        int startX = cx - dx;
+        int endX = cx + dx;
 
         for (int x = startX; x <= endX; x++) {
-            Color sampledColor = sampleTexture(static_cast<float>(x),
-                                               static_cast<float>(cy + y));
+            Color sampledColor = sampleTexture(x, y);
             sampledColor.a = 1.0f;
-            points.push_back(Pixel(static_cast<int>(std::round(x)),
-                                   static_cast<int>(std::round(cy + y)),
-                                   sampledColor));
+            points.push_back(Pixel(x, y, sampledColor));
         }
     }
 }
 
-void Circle::fillCircleAntiAliased(Pixels &points, float cx, float cy,
-                                   float r) {
-    for (int y = static_cast<int>(std::ceil(cy - r));
-         y <= static_cast<int>(std::floor(cy + r)); y++) {
-        for (int x = static_cast<int>(std::ceil(cx - r));
-             x <= static_cast<int>(std::floor(cx + r)); x++) {
-            float dx = x - cx;
-            float dy = y - cy;
-            float distance = std::sqrt(dx * dx + dy * dy);
+void Circle::fillCircleAntiAliased(Pixels &points, int cx, int cy, int r) {
+    int r2 = r * r;
+    int minY = cy - r;
+    int maxY = cy + r;
+    int minX = cx - r;
+    int maxX = cx + r;
 
-            if (distance <= r) {
-                Color sampledColor =
-                    sampleTexture(static_cast<float>(x), static_cast<float>(y));
+    points.reserve(points.size() + (2 * r + 1) * (2 * r + 1));
+
+    for (int y = minY; y <= maxY; y++) {
+        int dy = y - cy;
+        int dy2 = dy * dy;
+
+        if (dy2 > r2)
+            continue;
+
+        for (int x = minX; x <= maxX; x++) {
+            int dx = x - cx;
+            int dx2 = dx * dx;
+
+            int dist2 = dx2 + dy2;
+
+            if (dist2 <= r2) {
+                Color sampledColor = sampleTexture(x, y);
                 float alpha = sampledColor.a;
 
                 if (alpha > 0.01f) {
-                    points.push_back(Pixel(static_cast<int>(std::round(x)),
-                                           static_cast<int>(std::round(y)),
+                    points.push_back(Pixel(x, y,
                                            Color(sampledColor.r, sampledColor.g,
                                                  sampledColor.b, alpha)));
                 }
@@ -90,11 +110,11 @@ void Circle::fillCircleAntiAliased(Pixels &points, float cx, float cy,
 Pixels Circle::drawAliased() {
     Pixels points;
     auto center = getTransformedPosition(x, y);
-    float r = radius;
+    int r = radius;
 
-    float xPos = 0;
-    float yPos = r;
-    float d = 1 - r;
+    int xPos = 0;
+    int yPos = r;
+    int d = 1 - r;
 
     while (xPos <= yPos) {
         drawCirclePoints(points, center.first, center.second, xPos, yPos);
@@ -116,12 +136,16 @@ Pixels Circle::drawAliased() {
 }
 
 Pixels Circle::drawAntiAliased() {
+    PROFILE_START();
     Pixels points;
     auto center = getTransformedPosition(x, y);
-    float r = radius;
+    int r = radius;
 
     // Xiaolin Wu's circle algorithm for anti-aliased rendering
-    for (float xPos = 0; xPos <= r / std::sqrt(2); xPos++) {
+    float sqrt2 = std::sqrt(2.0f);
+    float maxX = r / sqrt2;
+
+    for (float xPos = 0; xPos <= maxX; xPos++) {
         float yPos = std::sqrt(r * r - xPos * xPos);
 
         float error = yPos - std::floor(yPos);
@@ -144,6 +168,6 @@ Pixels Circle::drawAntiAliased() {
     if (fill) {
         fillCircleAntiAliased(points, center.first, center.second, r);
     }
-
+    PROFILE_END("Circle::drawAntiAliased");
     return points;
 }

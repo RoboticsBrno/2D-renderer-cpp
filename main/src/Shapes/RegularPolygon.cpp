@@ -1,4 +1,5 @@
 #include "RegularPolygon.hpp"
+#include "../Profiler.hpp"
 #include <cmath>
 
 RegularPolygon::RegularPolygon(const RegularPolygonSideParams &params)
@@ -9,25 +10,107 @@ RegularPolygon::RegularPolygon(const RegularPolygonRadiusParams &params)
     : Shape(params), sides(params.sides), useSideLength(false), sideLength(0),
       radius(params.radius), fill(params.fill) {}
 
-float RegularPolygon::calculateRadiusFromSideLength(float sideLength) {
-    return sideLength / (2 * std::sin(M_PI / sides));
+int RegularPolygon::getSides() const { return sides; }
+int RegularPolygon::getRadius() {
+    if (useSideLength) {
+        return calculateRadiusFromSideLength(sideLength);
+    }
+    return radius;
 }
 
+int RegularPolygon::calculateRadiusFromSideLength(int sideLength) {
+    return sideLength / (2 * std::sin(M_PI / sides));
+}
+Pixels RegularPolygon::getInsidePoints(
+    const std::vector<std::pair<int, int>> &vertices) {
+    if (vertices.size() < 3)
+        return Pixels();
+
+    int minX = vertices[0].first;
+    int maxX = vertices[0].first;
+    int minY = vertices[0].second;
+    int maxY = vertices[0].second;
+
+    for (size_t i = 1; i < vertices.size(); ++i) {
+        const auto &v = vertices[i];
+        if (v.first < minX)
+            minX = v.first;
+        if (v.first > maxX)
+            maxX = v.first;
+        if (v.second < minY)
+            minY = v.second;
+        if (v.second > maxY)
+            maxY = v.second;
+    }
+
+    Pixels points;
+    points.reserve((maxX - minX + 1) * (maxY - minY + 1) / 2);
+
+    struct Edge {
+        int x1, y1, x2, y2;
+        float slope;
+        bool operator<(const Edge &other) const { return y1 < other.y1; }
+    };
+
+    std::vector<Edge> edges;
+    edges.reserve(vertices.size());
+
+    size_t n = vertices.size();
+    for (size_t i = 0; i < n; i++) {
+        size_t j = (i + 1) % n;
+        int x1 = vertices[i].first, y1 = vertices[i].second;
+        int x2 = vertices[j].first, y2 = vertices[j].second;
+
+        if (y1 != y2) {
+            edges.push_back(
+                {x1, y1, x2, y2, static_cast<float>(x2 - x1) / (y2 - y1)});
+        }
+    }
+
+    for (int y = minY; y <= maxY; y++) {
+        std::vector<int> intersections;
+        intersections.reserve(edges.size());
+
+        for (const auto &edge : edges) {
+            if ((y >= edge.y1 && y < edge.y2) ||
+                (y >= edge.y2 && y < edge.y1)) {
+                float x = edge.x1 + edge.slope * (y - edge.y1);
+                intersections.push_back(static_cast<int>(std::round(x)));
+            }
+        }
+
+        std::sort(intersections.begin(), intersections.end());
+
+        for (size_t i = 0; i < intersections.size(); i += 2) {
+            if (i + 1 < intersections.size()) {
+                int startX = std::max(minX, intersections[i]);
+                int endX = std::min(maxX, intersections[i + 1]);
+
+                for (int x = startX; x <= endX; x++) {
+                    Color sampledColor = sampleTexture(x, y);
+                    points.push_back(Pixel(x, y, sampledColor));
+                }
+            }
+        }
+    }
+
+    return points;
+}
 Collider *RegularPolygon::defaultCollider() {
-    float effectiveRadius =
+    int effectiveRadius =
         useSideLength ? calculateRadiusFromSideLength(sideLength) : radius;
     return new RegularPolygonCollider(x, y, sides, effectiveRadius);
 }
 
-std::vector<std::pair<float, float>> RegularPolygon::getVertices() {
-    float effectiveRadius;
+std::vector<std::pair<int, int>> RegularPolygon::getVertices() {
+    int effectiveRadius;
     if (useSideLength) {
         effectiveRadius = calculateRadiusFromSideLength(sideLength);
     } else {
         effectiveRadius = radius;
     }
 
-    std::vector<std::pair<float, float>> vertices;
+    std::vector<std::pair<int, int>> vertices;
     for (int i = 0; i < sides; i++) {
         float angle = 2 * M_PI / sides * i - M_PI / 2;
         float vx = x + effectiveRadius * std::cos(angle);
@@ -38,73 +121,58 @@ std::vector<std::pair<float, float>> RegularPolygon::getVertices() {
     return vertices;
 }
 
-std::vector<LineSegment *> RegularPolygon::getSegments() {
-    auto vertices = getVertices();
-    std::vector<LineSegment *> segments;
-
-    for (size_t i = 0; i < vertices.size(); i++) {
-        size_t j = (i + 1) % vertices.size();
-        LineSegment *segment = new LineSegment(
-            LineSegmentParams{vertices[i].first, vertices[i].second, color, z,
-                              vertices[j].first, vertices[j].second});
-
-        if (texture)
-            segment->setTexture(texture);
-        segment->setTextureScale(uvTransform.scaleX, uvTransform.scaleY);
-        segment->setTextureOffset(uvTransform.offsetX, uvTransform.offsetY);
-        segment->setFixTexture(fixTexture);
-
-        segments.push_back(segment);
-    }
-
-    return segments;
-}
-
 Pixels RegularPolygon::drawAliased() {
     Pixels points;
-    auto segments = getSegments();
-
-    for (LineSegment *segment : segments) {
-        Pixels segmentPoints = segment->drawAliased();
-        points.insert(points.end(), segmentPoints.begin(), segmentPoints.end());
-        delete segment;
-    }
+    auto vertices = getVertices();
 
     if (fill) {
-        Pixels insidePoints = getInsidePointsWithTexture(getVertices());
+        Pixels insidePoints = getInsidePoints(vertices);
         points.insert(points.end(), insidePoints.begin(), insidePoints.end());
+    }
+
+    if (vertices.size() >= 3) {
+        for (size_t i = 0; i < vertices.size(); i++) {
+            size_t j = (i + 1) % vertices.size();
+            Pixels edge = bresenhamLine(vertices[i].first, vertices[i].second,
+                                        vertices[j].first, vertices[j].second);
+            points.insert(points.end(), edge.begin(), edge.end());
+        }
     }
 
     return points;
 }
 
 Pixels RegularPolygon::drawAntiAliased() {
+    PROFILE_START();
     Pixels points;
-    auto segments = getSegments();
+    auto vertices = PROFILE_FUNC_RET(getVertices());
 
-    for (LineSegment *segment : segments) {
-        Pixels segmentPoints = segment->drawAntiAliased();
-        points.insert(points.end(), segmentPoints.begin(), segmentPoints.end());
-        delete segment;
+    if (vertices.size() >= 3) {
+        for (size_t i = 0; i < vertices.size(); i++) {
+            size_t j = (i + 1) % vertices.size();
+            Pixels edge = wuLine(vertices[i].first, vertices[i].second,
+                                 vertices[j].first, vertices[j].second);
+            points.insert(points.end(), edge.begin(), edge.end());
+        }
     }
 
     if (fill) {
-        Pixels insidePoints = getInsidePointsWithTexture(getVertices());
+        Pixels insidePoints = PROFILE_FUNC_RET(getInsidePoints(vertices));
         points.insert(points.end(), insidePoints.begin(), insidePoints.end());
     }
-
+    PROFILE_END("RegularPolygon::drawAntiAliased");
     return points;
 }
 
 Pixels RegularPolygon::getInsidePointsWithTexture(
-    const std::vector<std::pair<float, float>> &vertices) {
+    const std::vector<std::pair<int, int>> &vertices) {
     if (vertices.empty())
         return Pixels();
 
-    float minX = vertices[0].first;
-    float maxX = vertices[0].first;
-    float minY = vertices[0].second;
-    float maxY = vertices[0].second;
+    int minX = vertices[0].first;
+    int maxX = vertices[0].first;
+    int minY = vertices[0].second;
+    int maxY = vertices[0].second;
 
     for (const auto &v : vertices) {
         minX = std::min(minX, v.first);
@@ -119,8 +187,8 @@ Pixels RegularPolygon::getInsidePointsWithTexture(
             bool inside = false;
             size_t n = vertices.size();
             for (size_t i = 0, j = n - 1; i < n; j = i++) {
-                float xi = vertices[i].first, yi = vertices[i].second;
-                float xj = vertices[j].first, yj = vertices[j].second;
+                int xi = vertices[i].first, yi = vertices[i].second;
+                int xj = vertices[j].first, yj = vertices[j].second;
 
                 bool intersect = ((yi > y) != (yj > y)) &&
                                  (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
@@ -129,8 +197,7 @@ Pixels RegularPolygon::getInsidePointsWithTexture(
             }
 
             if (inside) {
-                Color sampledColor =
-                    sampleTexture(static_cast<float>(x), static_cast<float>(y));
+                Color sampledColor = sampleTexture(x, y);
                 points.push_back(Pixel(x, y, sampledColor));
             }
         }

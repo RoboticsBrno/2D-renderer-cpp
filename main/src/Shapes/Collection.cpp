@@ -1,7 +1,6 @@
 #include "Collection.hpp"
-#include "../Renderer.hpp"
+#include "../Profiler.hpp"
 
-// Simple sort function since std::sort might not be available
 template <typename T, typename Compare>
 void simple_sort(std::vector<T> &vec, Compare comp) {
     for (size_t i = 0; i < vec.size(); ++i) {
@@ -31,23 +30,21 @@ void Collection::addShape(Shape *shape) {
 Pixels Collection::drawAntiAliased() {
     Pixels pixels;
 
-    // Sort shapes by z-index
     std::vector<Shape *> sortedShapes = shapes;
     simple_sort(sortedShapes,
                 [](Shape *a, Shape *b) { return a->getZ() < b->getZ(); });
 
     for (Shape *shape : sortedShapes) {
-        Pixels shapePixels = shape->drawAntiAliased();
+        Pixels shapePixels = PROFILE_FUNC_RET(shape->drawAntiAliased());
         pixels.insert(pixels.end(), shapePixels.begin(), shapePixels.end());
     }
 
-    return Renderer::blendPixels(pixels);
+    return pixels;
 }
 
 Pixels Collection::drawAliased() {
     Pixels pixels;
 
-    // Sort shapes by z-index
     std::vector<Shape *> sortedShapes = shapes;
     simple_sort(sortedShapes,
                 [](Shape *a, Shape *b) { return a->getZ() < b->getZ(); });
@@ -56,6 +53,5 @@ Pixels Collection::drawAliased() {
         Pixels shapePixels = shape->drawAliased();
         pixels.insert(pixels.end(), shapePixels.begin(), shapePixels.end());
     }
-
-    return Renderer::blendPixels(pixels);
+    return pixels;
 }

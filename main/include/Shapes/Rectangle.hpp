@@ -2,20 +2,20 @@
 #include "Shape.hpp"
 
 struct RectangleParams : public ShapeParams {
-    float width;
-    float height;
+    int width;
+    int height;
     bool fill;
 
-    RectangleParams(float x, float y, const Color &color, float width,
-                    float height, bool fill = false)
-        : ShapeParams(x, y, color, 0), width(width), height(height),
+    RectangleParams(int x, int y, const Color &color, int width, int height,
+                    bool fill = false, int z = 0)
+        : ShapeParams(x, y, color, z), width(width), height(height),
           fill(fill) {}
 };
 
 class Rectangle : public Shape {
   private:
-    float width;
-    float height;
+    int width;
+    int height;
     bool fill;
 
   public:
@@ -25,7 +25,6 @@ class Rectangle : public Shape {
     Pixels drawAliased() override;
 
   private:
-    std::vector<std::pair<float, float>> getVertices();
-    Pixels
-    getInsidePoints(const std::vector<std::pair<float, float>> &vertices);
+    std::vector<std::pair<int, int>> getVertices();
+    Pixels getInsidePoints(const std::vector<std::pair<int, int>> &vertices);
 };

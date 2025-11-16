@@ -2,7 +2,6 @@
 #include <algorithm>
 #include <cmath>
 
-// IntersectionVisitor method implementations
 bool IntersectionVisitor::visitCircle(const CircleCollider *circle) {
     switch (other->getType()) {
     case ColliderType::CIRCLE:
@@ -126,8 +125,6 @@ bool IntersectionVisitor::visitRegularPolygon(
     return other->accept(&polygonVisitor);
 }
 
-// Intersection implementations (keep the same as before, but remove
-// dynamic_cast usage)
 bool IntersectionVisitor::circleCircle(const CircleCollider *c1,
                                        const CircleCollider *c2) {
     float distanceSquared =
@@ -138,9 +135,9 @@ bool IntersectionVisitor::circleCircle(const CircleCollider *c1,
 
 bool IntersectionVisitor::circleRectangle(const CircleCollider *circle,
                                           const RectangleCollider *rect) {
-    float closestX =
+    int closestX =
         std::max(rect->x, std::min(circle->x, rect->x + rect->width));
-    float closestY =
+    int closestY =
         std::max(rect->y, std::min(circle->y, rect->y + rect->height));
     float distanceSquared = CollisionMath::distanceSquared(circle->x, circle->y,
                                                            closestX, closestY);
@@ -180,8 +177,8 @@ bool IntersectionVisitor::circleLine(const CircleCollider *circle,
 bool IntersectionVisitor::circlePolygon(const CircleCollider *circle,
                                         const PolygonCollider *polygon) {
     auto worldPoints = polygon->getWorldPoints();
-    std::vector<std::pair<float, float>> pointsVec(worldPoints.begin(),
-                                                   worldPoints.end());
+    std::vector<std::pair<int, int>> pointsVec(worldPoints.begin(),
+                                               worldPoints.end());
 
     if (CollisionMath::pointInPolygon(circle->x, circle->y, pointsVec)) {
         return true;
@@ -249,8 +246,8 @@ bool IntersectionVisitor::rectangleLine(const RectangleCollider *rect,
 bool IntersectionVisitor::rectanglePolygon(const RectangleCollider *rect,
                                            const PolygonCollider *polygon) {
     auto worldPoints = polygon->getWorldPoints();
-    std::vector<std::pair<float, float>> pointsVec(worldPoints.begin(),
-                                                   worldPoints.end());
+    std::vector<std::pair<int, int>> pointsVec(worldPoints.begin(),
+                                               worldPoints.end());
 
     for (const auto &point : worldPoints) {
         PointCollider tempPoint(point.first, point.second);
@@ -307,16 +304,16 @@ bool IntersectionVisitor::rectangleRegularPolygon(
 bool IntersectionVisitor::polygonPoint(const PolygonCollider *polygon,
                                        const PointCollider *point) {
     auto worldPoints = polygon->getWorldPoints();
-    std::vector<std::pair<float, float>> pointsVec(worldPoints.begin(),
-                                                   worldPoints.end());
+    std::vector<std::pair<int, int>> pointsVec(worldPoints.begin(),
+                                               worldPoints.end());
     return CollisionMath::pointInPolygon(point->x, point->y, pointsVec);
 }
 
 bool IntersectionVisitor::polygonLine(const PolygonCollider *polygon,
                                       const LineSegmentCollider *line) {
     auto worldPoints = polygon->getWorldPoints();
-    std::vector<std::pair<float, float>> pointsVec(worldPoints.begin(),
-                                                   worldPoints.end());
+    std::vector<std::pair<int, int>> pointsVec(worldPoints.begin(),
+                                               worldPoints.end());
 
     PointCollider startPoint(line->x, line->y);
     PointCollider endPoint(line->x2, line->y2);
@@ -341,10 +338,10 @@ bool IntersectionVisitor::polygonPolygon(const PolygonCollider *p1,
                                          const PolygonCollider *p2) {
     auto worldPoints1 = p1->getWorldPoints();
     auto worldPoints2 = p2->getWorldPoints();
-    std::vector<std::pair<float, float>> pointsVec1(worldPoints1.begin(),
-                                                    worldPoints1.end());
-    std::vector<std::pair<float, float>> pointsVec2(worldPoints2.begin(),
-                                                    worldPoints2.end());
+    std::vector<std::pair<int, int>> pointsVec1(worldPoints1.begin(),
+                                                worldPoints1.end());
+    std::vector<std::pair<int, int>> pointsVec2(worldPoints2.begin(),
+                                                worldPoints2.end());
 
     for (const auto &point : worldPoints1) {
         if (CollisionMath::pointInPolygon(point.first, point.second,

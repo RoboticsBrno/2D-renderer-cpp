@@ -1,5 +1,6 @@
 idf_component_register(SRCS 
     "main.cpp"
+    "src/Profiler.cpp"
     "src/Renderer.cpp"
     "src/Utils.cpp"
     "src/Texture.cpp"
@@ -16,7 +17,7 @@ idf_component_register(SRCS
     "include"
     "include/Shapes"
     REQUIRES ESP32-HUB75-MatrixPanel-I2S-DMA
-    PRIV_REQUIRES esp_timer)
+    PRIV_REQUIRES esp_timer perfmon)
 
 target_compile_options(${COMPONENT_LIB} PRIVATE 
     -Wno-narrowing

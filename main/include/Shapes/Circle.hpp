@@ -2,17 +2,17 @@
 #include "Shape.hpp"
 
 struct CircleParams : public ShapeParams {
-    float radius;
+    int radius;
     bool fill;
 
-    CircleParams(float x, float y, const Color &color, float radius,
-                 bool fill = false)
-        : ShapeParams(x, y, color, 0), radius(radius), fill(fill) {}
+    CircleParams(int x, int y, const Color &color, int radius,
+                 bool fill = false, int z = 0)
+        : ShapeParams(x, y, color, z), radius(radius), fill(fill) {}
 };
 
 class Circle : public Shape {
   private:
-    float radius;
+    int radius;
     bool fill;
 
   public:
@@ -20,13 +20,14 @@ class Circle : public Shape {
     Collider *defaultCollider() override;
     Pixels drawAntiAliased() override;
     Pixels drawAliased() override;
+    int getRadius() const;
 
   private:
-    std::vector<std::pair<float, float>> getPointsToDraw(float cx, float cy,
-                                                         float x, float y);
-    void drawCirclePoints(Pixels &points, float cx, float cy, float x, float y);
-    void drawAntiAliasedPoint(Pixels &points, float cx, float cy, float x,
-                              float y, float intensity);
-    void fillCircle(Pixels &points, float cx, float cy, float r);
-    void fillCircleAntiAliased(Pixels &points, float cx, float cy, float r);
+    std::vector<std::pair<int, int>> getPointsToDraw(int cx, int cy, int x,
+                                                     int y);
+    void drawCirclePoints(Pixels &points, int cx, int cy, int x, int y);
+    void drawAntiAliasedPoint(Pixels &points, int cx, int cy, int x, int y,
+                              float intensity);
+    void fillCircle(Pixels &points, int cx, int cy, int r);
+    void fillCircleAntiAliased(Pixels &points, int cx, int cy, int r);
 };

@@ -4,18 +4,18 @@
 #include <vector>
 
 struct PolygonParams : public ShapeParams {
-    std::vector<std::pair<float, float>> vertices;
+    std::vector<std::pair<int, int>> vertices;
     bool fill;
 
-    PolygonParams(float x, float y, const Color &color,
-                  const std::vector<std::pair<float, float>> &vertices,
-                  bool fill = false)
-        : ShapeParams(x, y, color, 0), vertices(vertices), fill(fill) {}
+    PolygonParams(int x, int y, const Color &color,
+                  const std::vector<std::pair<int, int>> &vertices,
+                  bool fill = false, int z = 0)
+        : ShapeParams(x, y, color, z), vertices(vertices), fill(fill) {}
 };
 
 class Polygon : public Shape {
   private:
-    std::vector<std::pair<float, float>> vertices;
+    std::vector<std::pair<int, int>> vertices;
     bool fill;
 
   public:
@@ -25,8 +25,9 @@ class Polygon : public Shape {
     Pixels drawAliased() override;
 
   private:
-    std::vector<std::pair<float, float>> getTransformedVertices();
+    std::vector<std::pair<int, int>> getTransformedVertices();
     std::vector<LineSegment *> getSegments();
+    Pixels getInsidePoints(const std::vector<std::pair<int, int>> &vertices);
     Pixels getInsidePointsWithTexture(
-        const std::vector<std::pair<float, float>> &vertices);
+        const std::vector<std::pair<int, int>> &vertices);
 };

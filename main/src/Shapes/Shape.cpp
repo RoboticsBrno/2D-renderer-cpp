@@ -1,4 +1,5 @@
 #include "Shape.hpp"
+#include "../Profiler.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -38,7 +39,7 @@ bool Shape::intersects(Shape *other) {
     return false;
 }
 
-void Shape::translate(float dx, float dy) {
+void Shape::translate(int dx, int dy) {
     x += dx;
     y += dy;
     if (collider) {
@@ -64,24 +65,24 @@ void Shape::setTextureRotation(float rotation) {
     uvTransform.rotation = rotation;
 }
 
-Color Shape::sampleTexture(float x, float y) {
+Color Shape::sampleTexture(int x, int y) {
     if (!texture) {
         return color;
     }
 
-    float localX = x - this->x;
-    float localY = y - this->y;
+    int localX = x - this->x;
+    int localY = y - this->y;
 
     if (fixTexture && rotation.angle != 0) {
         float angleRad = -rotation.angle * M_PI / 180.0f;
         float cos = std::cos(angleRad);
         float sin = std::sin(angleRad);
 
-        float rotationOriginX = rotation.x;
-        float rotationOriginY = rotation.y;
+        int rotationOriginX = rotation.x;
+        int rotationOriginY = rotation.y;
 
-        float translatedX = localX - (rotationOriginX - this->x);
-        float translatedY = localY - (rotationOriginY - this->y);
+        int translatedX = localX - (rotationOriginX - this->x);
+        int translatedY = localY - (rotationOriginY - this->y);
 
         localX = translatedX * cos + translatedY * sin;
         localY = -translatedX * sin + translatedY * cos;
@@ -90,8 +91,8 @@ Color Shape::sampleTexture(float x, float y) {
         localY += (rotationOriginY - this->y);
     }
 
-    float u = (localX / uvTransform.scaleX + uvTransform.offsetX);
-    float v = (localY / uvTransform.scaleY + uvTransform.offsetY);
+    int u = (localX / uvTransform.scaleX + uvTransform.offsetX);
+    int v = (localY / uvTransform.scaleY + uvTransform.offsetY);
 
     if (uvTransform.rotation != 0) {
         float texAngleRad = uvTransform.rotation * M_PI / 180.0f;
@@ -118,12 +119,13 @@ Color Shape::sampleTexture(float x, float y) {
 
 void Shape::setParent(Shape *parent) { this->parent = parent; }
 
-std::pair<float, float> Shape::getTransformedPosition(float x, float y) {
-    float currentX = x;
-    float currentY = y;
+std::pair<int, int> Shape::getTransformedPosition(int x, int y) {
+    PROFILE_START();
+    int currentX = x;
+    int currentY = y;
 
-    float scaleOriginX = scale.originX;
-    float scaleOriginY = scale.originY;
+    int scaleOriginX = scale.originX;
+    int scaleOriginY = scale.originY;
 
     currentX = (currentX - scaleOriginX) * scale.x + scaleOriginX;
     currentY = (currentY - scaleOriginY) * scale.y + scaleOriginY;
@@ -132,11 +134,11 @@ std::pair<float, float> Shape::getTransformedPosition(float x, float y) {
     float cos = std::cos(angleRad);
     float sin = std::sin(angleRad);
 
-    float rotationOriginX = rotation.x;
-    float rotationOriginY = rotation.y;
+    int rotationOriginX = rotation.x;
+    int rotationOriginY = rotation.y;
 
-    float translatedX = currentX - rotationOriginX;
-    float translatedY = currentY - rotationOriginY;
+    int translatedX = currentX - rotationOriginX;
+    int translatedY = currentY - rotationOriginY;
 
     currentX = translatedX * cos + translatedY * sin + rotationOriginX;
     currentY = -translatedX * sin + translatedY * cos + rotationOriginY;
@@ -147,26 +149,29 @@ std::pair<float, float> Shape::getTransformedPosition(float x, float y) {
         currentX = parentTransformed.first;
         currentY = parentTransformed.second;
     }
-
+    PROFILE_END("Shape::getTransformedPosition");
     return {std::round(currentX), std::round(currentY)};
 }
 
-Pixels Shape::bresenhamLine(float x0, float y0, float x1, float y1) {
-    float dx = std::abs(x1 - x0);
-    float dy = std::abs(y1 - y0);
+Pixels Shape::bresenhamLine(int x0, int y0, int x1, int y1) {
+    Pixels points;
+
+    int dx = std::abs(x1 - x0);
+    int dy = std::abs(y1 - y0);
     int sx = (x0 < x1) ? 1 : -1;
     int sy = (y0 < y1) ? 1 : -1;
+    int err = dx - dy;
 
-    Pixels points;
-    float x = x0;
-    float y = y0;
-    float err = dx - dy;
+    points.reserve(static_cast<size_t>(dx + dy + 1));
 
-    points.push_back(
-        Pixel(static_cast<int>(x), static_cast<int>(y), sampleTexture(x, y)));
+    int x = x0;
+    int y = y0;
+
+    Color sampledColor = texture ? sampleTexture(x, y) : color;
+    points.push_back(Pixel(x, y, sampledColor));
 
     while (x != x1 || y != y1) {
-        float e2 = 2 * err;
+        int e2 = err * 2;
 
         if (e2 > -dy) {
             err -= dy;
@@ -178,15 +183,23 @@ Pixels Shape::bresenhamLine(float x0, float y0, float x1, float y1) {
             y += sy;
         }
 
-        points.push_back(Pixel(static_cast<int>(x), static_cast<int>(y),
-                               sampleTexture(x, y)));
+        if (texture) {
+            sampledColor = sampleTexture(x, y);
+        }
+        points.push_back(Pixel(x, y, sampledColor));
     }
 
     return points;
 }
 
-Pixels Shape::wuLine(float x0, float y0, float x1, float y1) {
+Pixels Shape::wuLine(int x0_int, int y0_int, int x1_int, int y1_int) {
+    PROFILE_START();
     Pixels points;
+
+    float x0 = static_cast<float>(x0_int);
+    float y0 = static_cast<float>(y0_int);
+    float x1 = static_cast<float>(x1_int);
+    float y1 = static_cast<float>(y1_int);
 
     bool steep = std::abs(y1 - y0) > std::abs(x1 - x0);
 
@@ -200,87 +213,93 @@ Pixels Shape::wuLine(float x0, float y0, float x1, float y1) {
         std::swap(y0, y1);
     }
 
-    float dx = x1 - x0;
-    float dy = y1 - y0;
-    float gradient = (dx == 0) ? 1.0f : dy / dx;
+    const float dx = x1 - x0;
+    const float dy = y1 - y0;
+    const float gradient = (dx == 0) ? 1.0f : dy / dx;
 
-    auto rfpart = [](float x) { return 1.0f - (x - std::floor(x)); };
-    auto fpart = [](float x) { return x - std::floor(x); };
+    const float x0_plus_half = x0 + 0.5f;
+    const float x1_plus_half = x1 + 0.5f;
 
-    float xend = std::round(x0);
-    float yend = y0 + gradient * (xend - x0);
-    float xgap = rfpart(x0 + 0.5f);
+    int xpxl1 = static_cast<int>(std::round(x0));
+    float yend = y0 + gradient * (xpxl1 - x0);
+    float xgap =
+        1.0f - (x0_plus_half - std::floor(x0_plus_half)); // rfpart(x0 + 0.5f)
 
-    float xpxl1 = xend;
-    float ypxl1 = std::floor(yend);
+    int ypxl1 = static_cast<int>(std::floor(yend));
+    float yend_fpart = yend - ypxl1;
+    float yend_rfpart = 1.0f - yend_fpart;
 
     if (steep) {
-        addPixel(points, ypxl1, xpxl1, rfpart(yend) * xgap, true);
-        addPixel(points, ypxl1 + 1, xpxl1, fpart(yend) * xgap, true);
+        addPixel(points, ypxl1, xpxl1, yend_rfpart * xgap);
+        addPixel(points, ypxl1 + 1, xpxl1, yend_fpart * xgap);
     } else {
-        addPixel(points, xpxl1, ypxl1, rfpart(yend) * xgap, true);
-        addPixel(points, xpxl1, ypxl1 + 1, fpart(yend) * xgap, true);
+        addPixel(points, xpxl1, ypxl1, yend_rfpart * xgap);
+        addPixel(points, xpxl1, ypxl1 + 1, yend_fpart * xgap);
     }
 
     float intery = yend + gradient;
 
-    xend = std::round(x1);
-    yend = y1 + gradient * (xend - x1);
-    xgap = fpart(x1 + 0.5f);
-    float xpxl2 = xend;
-    float ypxl2 = std::floor(yend);
+    int xpxl2 = static_cast<int>(std::round(x1));
+    yend = y1 + gradient * (xpxl2 - x1);
+    xgap = x1_plus_half - std::floor(x1_plus_half); // fpart(x1 + 0.5f)
+
+    int ypxl2 = static_cast<int>(std::floor(yend));
+    yend_fpart = yend - ypxl2;
+    yend_rfpart = 1.0f - yend_fpart;
 
     if (steep) {
-        addPixel(points, ypxl2, xpxl2, rfpart(yend) * xgap, true);
-        addPixel(points, ypxl2 + 1, xpxl2, fpart(yend) * xgap, true);
+        addPixel(points, ypxl2, xpxl2, yend_rfpart * xgap);
+        addPixel(points, ypxl2 + 1, xpxl2, yend_fpart * xgap);
     } else {
-        addPixel(points, xpxl2, ypxl2, rfpart(yend) * xgap, true);
-        addPixel(points, xpxl2, ypxl2 + 1, fpart(yend) * xgap, true);
+        addPixel(points, xpxl2, ypxl2, yend_rfpart * xgap);
+        addPixel(points, xpxl2, ypxl2 + 1, yend_fpart * xgap);
     }
 
     if (steep) {
-        for (float x = xpxl1 + 1; x < xpxl2; x++) {
-            addPixel(points, std::floor(intery), x, rfpart(intery));
-            addPixel(points, std::floor(intery) + 1, x, fpart(intery));
+        for (int x = xpxl1 + 1; x < xpxl2; x++) {
+            int y_base = static_cast<int>(std::floor(intery));
+            float intery_fpart = intery - y_base;
+            float intery_rfpart = 1.0f - intery_fpart;
+
+            addPixel(points, y_base, x, intery_rfpart);
+            addPixel(points, y_base + 1, x, intery_fpart);
             intery += gradient;
         }
     } else {
-        for (float x = xpxl1 + 1; x < xpxl2; x++) {
-            addPixel(points, x, std::floor(intery), rfpart(intery));
-            addPixel(points, x, std::floor(intery) + 1, fpart(intery));
+        for (int x = xpxl1 + 1; x < xpxl2; x++) {
+            int y_base = static_cast<int>(std::floor(intery));
+            float intery_fpart = intery - y_base;
+            float intery_rfpart = 1.0f - intery_fpart;
+
+            addPixel(points, x, y_base, intery_rfpart);
+            addPixel(points, x, y_base + 1, intery_fpart);
             intery += gradient;
         }
     }
-
+    PROFILE_END("wuLine");
     return points;
 }
+void Shape::addPixel(Pixels &points, int x, int y, float alpha) {
+    if (alpha < 0.01f)
+        return;
 
-void Shape::addPixel(Pixels &points, float x, float y, float alpha,
-                     bool isEndpoint) {
-    int clampedX = static_cast<int>(std::max(0.0f, std::round(x)));
-    int clampedY = static_cast<int>(std::max(0.0f, std::round(y)));
+    if (x < 0 || y < 0)
+        return;
 
-    float finalAlpha =
-        isEndpoint ? 1.0f : std::max(0.0f, std::min(1.0f, alpha));
+    float finalAlpha = std::max(0.0f, std::min(1.0f, alpha));
 
-    if (alpha > 0.01f) {
-        Color pixelColor;
+    Color pixelColor;
 
-        if (!texture) {
-            pixelColor =
-                Color(color.r, color.g, color.b,
-                      std::max(0.0f, std::min(1.0f, finalAlpha * color.a)));
-        } else {
-            Color texColor = sampleTexture(clampedX, clampedY);
-            pixelColor =
-                Color(texColor.r, texColor.g, texColor.b,
-                      std::max(0.0f, std::min(1.0f, finalAlpha * texColor.a)));
-        }
-
-        points.push_back(Pixel(clampedX, clampedY, pixelColor));
+    if (!texture) {
+        pixelColor = Color(color.r, color.g, color.b, finalAlpha * color.a);
+    } else {
+        Color texColor = sampleTexture(x, y);
+        pixelColor =
+            Color(texColor.r, texColor.g, texColor.b, finalAlpha * texColor.a);
     }
-}
 
+    points.push_back(Pixel(x, y, pixelColor));
+}
 void Shape::setScale(float scaleX, float scaleY, float originX, float originY) {
     scale.x = scaleX;
     scale.y = scaleY;
@@ -302,25 +321,28 @@ void Shape::scaleY(float scaleY, float originY) {
         scale.originY = originY;
 }
 
-void Shape::setScaleOrigin(float x, float y) {
+void Shape::setScaleOrigin(int x, int y) {
     scale.originX = x;
     scale.originY = y;
 }
 
 void Shape::changeColor(const Color &color) { this->color = color; }
 
-void Shape::setZ(float z) { this->z = z; }
+void Shape::setZ(int z) { this->z = z; }
 
-void Shape::setPosition(float x, float y) {
+void Shape::setPosition(int x, int y) {
     this->x = x;
     this->y = y;
+    if (collider) {
+        collider->setPosition(x, y);
+    }
 }
 
 void Shape::rotate(float angle) {
     rotation.angle = std::fmod(rotation.angle + angle, 360.0f);
 }
 
-void Shape::setPivot(float x, float y) {
+void Shape::setPivot(int x, int y) {
     rotation.x = x;
     rotation.y = y;
 }
@@ -330,14 +352,14 @@ Pixels Shape::draw(const DrawOptions &options) {
 }
 
 Pixels
-Shape::getInsidePoints(const std::vector<std::pair<float, float>> &vertices) {
+Shape::getInsidePoints(const std::vector<std::pair<int, int>> &vertices) {
     if (vertices.empty())
         return Pixels();
 
-    float minX = vertices[0].first;
-    float maxX = vertices[0].first;
-    float minY = vertices[0].second;
-    float maxY = vertices[0].second;
+    int minX = vertices[0].first;
+    int maxX = vertices[0].first;
+    int minY = vertices[0].second;
+    int maxY = vertices[0].second;
 
     for (const auto &v : vertices) {
         minX = std::min(minX, v.first);
@@ -347,13 +369,13 @@ Shape::getInsidePoints(const std::vector<std::pair<float, float>> &vertices) {
     }
 
     Pixels points;
-    for (int x = static_cast<int>(minX); x <= static_cast<int>(maxX); x++) {
-        for (int y = static_cast<int>(minY); y <= static_cast<int>(maxY); y++) {
+    for (int x = minX; x <= maxX; x++) {
+        for (int y = minY; y <= maxY; y++) {
             bool inside = false;
             size_t n = vertices.size();
             for (size_t i = 0, j = n - 1; i < n; j = i++) {
-                float xi = vertices[i].first, yi = vertices[i].second;
-                float xj = vertices[j].first, yj = vertices[j].second;
+                int xi = vertices[i].first, yi = vertices[i].second;
+                int xj = vertices[j].first, yj = vertices[j].second;
 
                 bool intersect = ((yi > y) != (yj > y)) &&
                                  (x < (xj - xi) * (y - yi) / (yj - yi) + xi);

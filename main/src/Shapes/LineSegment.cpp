@@ -1,4 +1,6 @@
 #include "LineSegment.hpp"
+#include "esp_timer.h"
+#include <cstdint>
 
 LineSegment::LineSegment(const LineSegmentParams &params)
     : Shape(params), x2(params.x2), y2(params.y2) {}
@@ -10,10 +12,10 @@ Collider *LineSegment::defaultCollider() {
 Pixels LineSegment::drawAliased() {
     auto transformedStart = getTransformedPosition(x, y);
     auto transformedEnd = getTransformedPosition(x2, y2);
-    float x0 = transformedStart.first;
-    float y0 = transformedStart.second;
-    float x1 = transformedEnd.first;
-    float y1 = transformedEnd.second;
+    int x0 = transformedStart.first;
+    int y0 = transformedStart.second;
+    int x1 = transformedEnd.first;
+    int y1 = transformedEnd.second;
 
     return bresenhamLine(x0, y0, x1, y1);
 }
@@ -21,10 +23,13 @@ Pixels LineSegment::drawAliased() {
 Pixels LineSegment::drawAntiAliased() {
     auto transformedStart = getTransformedPosition(x, y);
     auto transformedEnd = getTransformedPosition(x2, y2);
-    float x0 = transformedStart.first;
-    float y0 = transformedStart.second;
-    float x1 = transformedEnd.first;
-    float y1 = transformedEnd.second;
+    int x0 = transformedStart.first;
+    int y0 = transformedStart.second;
+    int x1 = transformedEnd.first;
+    int y1 = transformedEnd.second;
 
-    return wuLine(x0, y0, x1, y1);
+    Pixels points;
+    points = wuLine(x0, y0, x1, y1);
+
+    return points;
 }

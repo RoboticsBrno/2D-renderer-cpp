@@ -1,4 +1,5 @@
 #include "Rectangle.hpp"
+#include "../Profiler.hpp"
 
 Rectangle::Rectangle(const RectangleParams &params)
     : Shape(params), width(params.width), height(params.height),
@@ -8,8 +9,8 @@ Collider *Rectangle::defaultCollider() {
     return new RectangleCollider(x, y, width, height);
 }
 
-std::vector<std::pair<float, float>> Rectangle::getVertices() {
-    std::vector<std::pair<float, float>> vertices;
+std::vector<std::pair<int, int>> Rectangle::getVertices() {
+    std::vector<std::pair<int, int>> vertices;
 
     vertices.push_back(getTransformedPosition(x, y));              // TL
     vertices.push_back(getTransformedPosition(x, y + height - 1)); // BL
@@ -20,15 +21,15 @@ std::vector<std::pair<float, float>> Rectangle::getVertices() {
     return vertices;
 }
 
-Pixels Rectangle::getInsidePoints(
-    const std::vector<std::pair<float, float>> &vertices) {
+Pixels
+Rectangle::getInsidePoints(const std::vector<std::pair<int, int>> &vertices) {
     if (vertices.size() < 4)
         return Pixels();
 
-    float minX = vertices[0].first;
-    float maxX = vertices[0].first;
-    float minY = vertices[0].second;
-    float maxY = vertices[0].second;
+    int minX = vertices[0].first;
+    int maxX = vertices[0].first;
+    int minY = vertices[0].second;
+    int maxY = vertices[0].second;
 
     for (const auto &v : vertices) {
         minX = std::min(minX, v.first);
@@ -43,8 +44,8 @@ Pixels Rectangle::getInsidePoints(
             bool inside = false;
             size_t n = vertices.size();
             for (size_t i = 0, j = n - 1; i < n; j = i++) {
-                float xi = vertices[i].first, yi = vertices[i].second;
-                float xj = vertices[j].first, yj = vertices[j].second;
+                int xi = vertices[i].first, yi = vertices[i].second;
+                int xj = vertices[j].first, yj = vertices[j].second;
 
                 bool intersect = ((yi > y) != (yj > y)) &&
                                  (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
@@ -53,8 +54,7 @@ Pixels Rectangle::getInsidePoints(
             }
 
             if (inside) {
-                Color sampledColor =
-                    sampleTexture(static_cast<float>(x), static_cast<float>(y));
+                Color sampledColor = sampleTexture(x, y);
                 points.push_back(Pixel(x, y, sampledColor));
             }
         }
@@ -64,6 +64,7 @@ Pixels Rectangle::getInsidePoints(
 }
 
 Pixels Rectangle::drawAntiAliased() {
+    PROFILE_START();
     Pixels points;
     auto vertices = getVertices();
 
@@ -88,7 +89,7 @@ Pixels Rectangle::drawAntiAliased() {
         points.insert(points.end(), leftEdge.begin(), leftEdge.end());
         points.insert(points.end(), rightEdge.begin(), rightEdge.end());
     }
-
+    PROFILE_END("Rectangle::drawAntiAliased");
     return points;
 }
 
