@@ -82,8 +82,8 @@ class Shape {
   protected:
     std::pair<int, int> getTransformedPosition(int x, int y);
 
-    Pixels bresenhamLine(int x0, int y0, int x1, int y1);
-    Pixels wuLine(int x0, int y0, int x1, int y1);
+    void bresenhamLine(Pixels &points, int x0, int y0, int x1, int y1);
+    void wuLine(Pixels &points, int x0, int y0, int x1, int y1);
     void addPixel(Pixels &points, int x, int y, float alpha);
 
   public:
@@ -98,10 +98,11 @@ class Shape {
     void rotate(float angle);
     void setPivot(int x, int y);
 
-    Pixels draw(const DrawOptions &options);
-    virtual Pixels drawAntiAliased() = 0;
-    virtual Pixels drawAliased() = 0;
+    void draw(Pixels &pixels, const DrawOptions &options);
+    virtual void drawAntiAliased(Pixels &pixels) = 0;
+    virtual void drawAliased(Pixels &pixels) = 0;
 
   protected:
-    Pixels getInsidePoints(const std::vector<std::pair<int, int>> &vertices);
+    void getInsidePoints(Pixels &points,
+                         const std::vector<std::pair<int, int>> &vertices);
 };

@@ -107,8 +107,7 @@ void Circle::fillCircleAntiAliased(Pixels &points, int cx, int cy, int r) {
     }
 }
 
-Pixels Circle::drawAliased() {
-    Pixels points;
+void Circle::drawAliased(Pixels &pixels) {
     auto center = getTransformedPosition(x, y);
     int r = radius;
 
@@ -117,7 +116,7 @@ Pixels Circle::drawAliased() {
     int d = 1 - r;
 
     while (xPos <= yPos) {
-        drawCirclePoints(points, center.first, center.second, xPos, yPos);
+        drawCirclePoints(pixels, center.first, center.second, xPos, yPos);
 
         if (d < 0) {
             d = d + 2 * xPos + 3;
@@ -129,15 +128,12 @@ Pixels Circle::drawAliased() {
     }
 
     if (fill) {
-        fillCircle(points, center.first, center.second, r);
+        fillCircle(pixels, center.first, center.second, r);
     }
-
-    return points;
 }
 
-Pixels Circle::drawAntiAliased() {
+void Circle::drawAntiAliased(Pixels &pixels) {
     PROFILE_START();
-    Pixels points;
     auto center = getTransformedPosition(x, y);
     int r = radius;
 
@@ -155,19 +151,18 @@ Pixels Circle::drawAntiAliased() {
         float y1 = std::floor(yPos);
         float y2 = y1 + 1;
 
-        drawAntiAliasedPoint(points, center.first, center.second, xPos, y1,
+        drawAntiAliasedPoint(pixels, center.first, center.second, xPos, y1,
                              intensity2);
-        drawAntiAliasedPoint(points, center.first, center.second, xPos, y2,
+        drawAntiAliasedPoint(pixels, center.first, center.second, xPos, y2,
                              intensity);
-        drawAntiAliasedPoint(points, center.first, center.second, y1, xPos,
+        drawAntiAliasedPoint(pixels, center.first, center.second, y1, xPos,
                              intensity2);
-        drawAntiAliasedPoint(points, center.first, center.second, y2, xPos,
+        drawAntiAliasedPoint(pixels, center.first, center.second, y2, xPos,
                              intensity);
     }
 
     if (fill) {
-        fillCircleAntiAliased(points, center.first, center.second, r);
+        fillCircleAntiAliased(pixels, center.first, center.second, r);
     }
     PROFILE_END("Circle::drawAntiAliased");
-    return points;
 }

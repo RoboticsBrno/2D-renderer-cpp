@@ -21,10 +21,10 @@ std::vector<std::pair<int, int>> Polygon::getTransformedVertices() {
     return transformed;
 }
 
-Pixels
-Polygon::getInsidePoints(const std::vector<std::pair<int, int>> &vertices) {
+void Polygon::getInsidePoints(
+    Pixels &points, const std::vector<std::pair<int, int>> &vertices) {
     if (vertices.size() < 3)
-        return Pixels();
+        return;
 
     int minX = vertices[0].first;
     int maxX = vertices[0].first;
@@ -38,7 +38,6 @@ Polygon::getInsidePoints(const std::vector<std::pair<int, int>> &vertices) {
         maxY = std::max(maxY, v.second);
     }
 
-    Pixels points;
     for (int x = static_cast<int>(minX); x <= static_cast<int>(maxX); x++) {
         for (int y = static_cast<int>(minY); y <= static_cast<int>(maxY); y++) {
             bool inside = false;
@@ -59,57 +58,48 @@ Polygon::getInsidePoints(const std::vector<std::pair<int, int>> &vertices) {
             }
         }
     }
-
-    return points;
 }
-Pixels Polygon::drawAliased() {
-    Pixels points;
+void Polygon::drawAliased(Pixels &pixels) {
     auto transformedVertices = getTransformedVertices();
 
     if (fill) {
-        Pixels insidePoints = getInsidePoints(transformedVertices);
-        points.insert(points.end(), insidePoints.begin(), insidePoints.end());
+        getInsidePoints(pixels, transformedVertices);
     }
 
     if (transformedVertices.size() >= 3) {
         for (size_t i = 0; i < transformedVertices.size(); i++) {
             size_t j = (i + 1) % transformedVertices.size();
-            Pixels edge = bresenhamLine(
-                transformedVertices[i].first, transformedVertices[i].second,
-                transformedVertices[j].first, transformedVertices[j].second);
-            points.insert(points.end(), edge.begin(), edge.end());
+            bresenhamLine(pixels, transformedVertices[i].first,
+                          transformedVertices[i].second,
+                          transformedVertices[j].first,
+                          transformedVertices[j].second);
         }
     }
-
-    return points;
 }
 
-Pixels Polygon::drawAntiAliased() {
+void Polygon::drawAntiAliased(Pixels &pixels) {
     PROFILE_START();
-    Pixels points;
     auto transformedVertices = getTransformedVertices();
 
     if (transformedVertices.size() >= 3) {
         for (size_t i = 0; i < transformedVertices.size(); i++) {
             size_t j = (i + 1) % transformedVertices.size();
-            Pixels edge = wuLine(
-                transformedVertices[i].first, transformedVertices[i].second,
-                transformedVertices[j].first, transformedVertices[j].second);
-            points.insert(points.end(), edge.begin(), edge.end());
+            wuLine(pixels, transformedVertices[i].first,
+                   transformedVertices[i].second,
+                   transformedVertices[j].first,
+                   transformedVertices[j].second);
         }
     }
 
     if (fill) {
-        Pixels insidePoints = getInsidePoints(transformedVertices);
-        points.insert(points.end(), insidePoints.begin(), insidePoints.end());
+        getInsidePoints(pixels, transformedVertices);
     }
     PROFILE_END("Polygon::drawAntiAliased");
-    return points;
 }
-Pixels Polygon::getInsidePointsWithTexture(
-    const std::vector<std::pair<int, int>> &vertices) {
+void Polygon::getInsidePointsWithTexture(
+    Pixels &points, const std::vector<std::pair<int, int>> &vertices) {
     if (vertices.empty())
-        return Pixels();
+        return;
 
     int minX = vertices[0].first;
     int maxX = vertices[0].first;
@@ -123,7 +113,6 @@ Pixels Polygon::getInsidePointsWithTexture(
         maxY = std::max(maxY, v.second);
     }
 
-    Pixels points;
     for (int x = static_cast<int>(minX); x <= static_cast<int>(maxX); x++) {
         for (int y = static_cast<int>(minY); y <= static_cast<int>(maxY); y++) {
             bool inside = false;
@@ -144,6 +133,4 @@ Pixels Polygon::getInsidePointsWithTexture(
             }
         }
     }
-
-    return points;
 }

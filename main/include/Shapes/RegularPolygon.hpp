@@ -36,8 +36,8 @@ class RegularPolygon : public Shape {
     RegularPolygon(const RegularPolygonSideParams &params);
     RegularPolygon(const RegularPolygonRadiusParams &params);
     Collider *defaultCollider() override;
-    Pixels drawAntiAliased() override;
-    Pixels drawAliased() override;
+    void drawAntiAliased(Pixels &pixels) override;
+    void drawAliased(Pixels &pixels) override;
     int getSides() const;
     int getRadius();
 
@@ -45,8 +45,9 @@ class RegularPolygon : public Shape {
     int calculateRadiusFromSideLength(int sideLength);
     std::vector<std::pair<int, int>> getVertices();
     std::vector<LineSegment *> getSegments();
-    Pixels getInsidePoints(const std::vector<std::pair<int, int>> &vertices);
+    void getInsidePoints(Pixels &points,
+                         const std::vector<std::pair<int, int>> &vertices);
 
-    Pixels getInsidePointsWithTexture(
-        const std::vector<std::pair<int, int>> &vertices);
+    void getInsidePointsWithTexture(
+        Pixels &points, const std::vector<std::pair<int, int>> &vertices);
 };

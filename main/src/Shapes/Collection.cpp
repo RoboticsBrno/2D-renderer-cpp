@@ -27,31 +27,22 @@ void Collection::addShape(Shape *shape) {
     shapes.push_back(shape);
 }
 
-Pixels Collection::drawAntiAliased() {
-    Pixels pixels;
-
+void Collection::drawAntiAliased(Pixels &pixels) {
     std::vector<Shape *> sortedShapes = shapes;
     simple_sort(sortedShapes,
                 [](Shape *a, Shape *b) { return a->getZ() < b->getZ(); });
 
     for (Shape *shape : sortedShapes) {
-        Pixels shapePixels = PROFILE_FUNC_RET(shape->drawAntiAliased());
-        pixels.insert(pixels.end(), shapePixels.begin(), shapePixels.end());
+        PROFILE_FUNC(shape->drawAntiAliased(pixels));
     }
-
-    return pixels;
 }
 
-Pixels Collection::drawAliased() {
-    Pixels pixels;
-
+void Collection::drawAliased(Pixels &pixels) {
     std::vector<Shape *> sortedShapes = shapes;
     simple_sort(sortedShapes,
                 [](Shape *a, Shape *b) { return a->getZ() < b->getZ(); });
 
     for (Shape *shape : sortedShapes) {
-        Pixels shapePixels = shape->drawAliased();
-        pixels.insert(pixels.end(), shapePixels.begin(), shapePixels.end());
+        shape->drawAliased(pixels);
     }
-    return pixels;
 }

@@ -18,6 +18,6 @@ class LineSegment : public Shape {
   public:
     LineSegment(const LineSegmentParams &params);
     Collider *defaultCollider() override;
-    Pixels drawAntiAliased() override;
-    Pixels drawAliased() override;
+    void drawAntiAliased(Pixels &pixels) override;
+    void drawAliased(Pixels &pixels) override;
 };

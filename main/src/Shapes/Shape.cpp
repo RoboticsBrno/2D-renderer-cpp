@@ -153,16 +153,14 @@ std::pair<int, int> Shape::getTransformedPosition(int x, int y) {
     return {std::round(currentX), std::round(currentY)};
 }
 
-Pixels Shape::bresenhamLine(int x0, int y0, int x1, int y1) {
-    Pixels points;
-
+void Shape::bresenhamLine(Pixels &points, int x0, int y0, int x1, int y1) {
     int dx = std::abs(x1 - x0);
     int dy = std::abs(y1 - y0);
     int sx = (x0 < x1) ? 1 : -1;
     int sy = (y0 < y1) ? 1 : -1;
     int err = dx - dy;
 
-    points.reserve(static_cast<size_t>(dx + dy + 1));
+    points.reserve(points.size() + dx + dy + 1);
 
     int x = x0;
     int y = y0;
@@ -188,14 +186,11 @@ Pixels Shape::bresenhamLine(int x0, int y0, int x1, int y1) {
         }
         points.push_back(Pixel(x, y, sampledColor));
     }
-
-    return points;
 }
 
-Pixels Shape::wuLine(int x0_int, int y0_int, int x1_int, int y1_int) {
+void Shape::wuLine(Pixels &points, int x0_int, int y0_int, int x1_int,
+                   int y1_int) {
     PROFILE_START();
-    Pixels points;
-
     float x0 = static_cast<float>(x0_int);
     float y0 = static_cast<float>(y0_int);
     float x1 = static_cast<float>(x1_int);
@@ -277,7 +272,6 @@ Pixels Shape::wuLine(int x0_int, int y0_int, int x1_int, int y1_int) {
         }
     }
     PROFILE_END("wuLine");
-    return points;
 }
 void Shape::addPixel(Pixels &points, int x, int y, float alpha) {
     if (alpha < 0.01f)
@@ -347,14 +341,14 @@ void Shape::setPivot(int x, int y) {
     rotation.y = y;
 }
 
-Pixels Shape::draw(const DrawOptions &options) {
-    return options.antialias ? drawAntiAliased() : drawAliased();
+void Shape::draw(Pixels &pixels, const DrawOptions &options) {
+    options.antialias ? drawAntiAliased(pixels) : drawAliased(pixels);
 }
 
-Pixels
-Shape::getInsidePoints(const std::vector<std::pair<int, int>> &vertices) {
+void Shape::getInsidePoints(
+    Pixels &points, const std::vector<std::pair<int, int>> &vertices) {
     if (vertices.empty())
-        return Pixels();
+        return;
 
     int minX = vertices[0].first;
     int maxX = vertices[0].first;
@@ -368,7 +362,6 @@ Shape::getInsidePoints(const std::vector<std::pair<int, int>> &vertices) {
         maxY = std::max(maxY, v.second);
     }
 
-    Pixels points;
     for (int x = minX; x <= maxX; x++) {
         for (int y = minY; y <= maxY; y++) {
             bool inside = false;
@@ -388,6 +381,4 @@ Shape::getInsidePoints(const std::vector<std::pair<int, int>> &vertices) {
             }
         }
     }
-
-    return points;
 }

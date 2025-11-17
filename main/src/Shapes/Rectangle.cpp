@@ -21,10 +21,10 @@ std::vector<std::pair<int, int>> Rectangle::getVertices() {
     return vertices;
 }
 
-Pixels
-Rectangle::getInsidePoints(const std::vector<std::pair<int, int>> &vertices) {
+void Rectangle::getInsidePoints(
+    Pixels &points, const std::vector<std::pair<int, int>> &vertices) {
     if (vertices.size() < 4)
-        return Pixels();
+        return;
 
     int minX = vertices[0].first;
     int maxX = vertices[0].first;
@@ -38,7 +38,6 @@ Rectangle::getInsidePoints(const std::vector<std::pair<int, int>> &vertices) {
         maxY = std::max(maxY, v.second);
     }
 
-    Pixels points;
     for (int x = static_cast<int>(minX); x <= static_cast<int>(maxX); x++) {
         for (int y = static_cast<int>(minY); y <= static_cast<int>(maxY); y++) {
             bool inside = false;
@@ -59,18 +58,14 @@ Rectangle::getInsidePoints(const std::vector<std::pair<int, int>> &vertices) {
             }
         }
     }
-
-    return points;
 }
 
-Pixels Rectangle::drawAntiAliased() {
+void Rectangle::drawAntiAliased(Pixels &pixels) {
     PROFILE_START();
-    Pixels points;
     auto vertices = getVertices();
 
     if (fill) {
-        Pixels insidePoints = getInsidePoints(vertices);
-        points.insert(points.end(), insidePoints.begin(), insidePoints.end());
+        getInsidePoints(pixels, vertices);
     }
 
     if (vertices.size() >= 4) {
@@ -79,27 +74,19 @@ Pixels Rectangle::drawAntiAliased() {
         auto br = vertices[2];
         auto tr = vertices[3];
 
-        Pixels topEdge = wuLine(tl.first, tl.second, tr.first, tr.second);
-        Pixels bottomEdge = wuLine(bl.first, bl.second, br.first, br.second);
-        Pixels leftEdge = wuLine(tl.first, tl.second, bl.first, bl.second);
-        Pixels rightEdge = wuLine(tr.first, tr.second, br.first, br.second);
-
-        points.insert(points.end(), topEdge.begin(), topEdge.end());
-        points.insert(points.end(), bottomEdge.begin(), bottomEdge.end());
-        points.insert(points.end(), leftEdge.begin(), leftEdge.end());
-        points.insert(points.end(), rightEdge.begin(), rightEdge.end());
+        wuLine(pixels, tl.first, tl.second, tr.first, tr.second);
+        wuLine(pixels, bl.first, bl.second, br.first, br.second);
+        wuLine(pixels, tl.first, tl.second, bl.first, bl.second);
+        wuLine(pixels, tr.first, tr.second, br.first, br.second);
     }
     PROFILE_END("Rectangle::drawAntiAliased");
-    return points;
 }
 
-Pixels Rectangle::drawAliased() {
-    Pixels points;
+void Rectangle::drawAliased(Pixels &pixels) {
     auto vertices = getVertices();
 
     if (fill) {
-        Pixels insidePoints = getInsidePoints(vertices);
-        points.insert(points.end(), insidePoints.begin(), insidePoints.end());
+        getInsidePoints(pixels, vertices);
     }
 
     if (vertices.size() >= 4) {
@@ -108,20 +95,9 @@ Pixels Rectangle::drawAliased() {
         auto br = vertices[2];
         auto tr = vertices[3];
 
-        Pixels topEdge =
-            bresenhamLine(tl.first, tl.second, tr.first, tr.second);
-        Pixels bottomEdge =
-            bresenhamLine(bl.first, bl.second, br.first, br.second);
-        Pixels leftEdge =
-            bresenhamLine(tl.first, tl.second, bl.first, bl.second);
-        Pixels rightEdge =
-            bresenhamLine(tr.first, tr.second, br.first, br.second);
-
-        points.insert(points.end(), topEdge.begin(), topEdge.end());
-        points.insert(points.end(), bottomEdge.begin(), bottomEdge.end());
-        points.insert(points.end(), leftEdge.begin(), leftEdge.end());
-        points.insert(points.end(), rightEdge.begin(), rightEdge.end());
+        bresenhamLine(pixels, tl.first, tl.second, tr.first, tr.second);
+        bresenhamLine(pixels, bl.first, bl.second, br.first, br.second);
+        bresenhamLine(pixels, tl.first, tl.second, bl.first, bl.second);
+        bresenhamLine(pixels, tr.first, tr.second, br.first, br.second);
     }
-
-    return points;
 }

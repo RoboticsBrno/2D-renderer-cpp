@@ -13,6 +13,6 @@ class Collection : public Shape {
     Collider *defaultCollider() override;
     void addShape(Shape *shape);
     std::vector<Shape *> getShapes() { return shapes; }
-    Pixels drawAntiAliased() override;
-    Pixels drawAliased() override;
+    void drawAntiAliased(Pixels &pixels) override;
+    void drawAliased(Pixels &pixels) override;
 };

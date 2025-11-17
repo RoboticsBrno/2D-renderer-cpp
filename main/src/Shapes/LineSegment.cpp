@@ -9,7 +9,7 @@ Collider *LineSegment::defaultCollider() {
     return new LineSegmentCollider(x, y, x2, y2);
 }
 
-Pixels LineSegment::drawAliased() {
+void LineSegment::drawAliased(Pixels &pixels) {
     auto transformedStart = getTransformedPosition(x, y);
     auto transformedEnd = getTransformedPosition(x2, y2);
     int x0 = transformedStart.first;
@@ -17,10 +17,10 @@ Pixels LineSegment::drawAliased() {
     int x1 = transformedEnd.first;
     int y1 = transformedEnd.second;
 
-    return bresenhamLine(x0, y0, x1, y1);
+    bresenhamLine(pixels, x0, y0, x1, y1);
 }
 
-Pixels LineSegment::drawAntiAliased() {
+void LineSegment::drawAntiAliased(Pixels &pixels) {
     auto transformedStart = getTransformedPosition(x, y);
     auto transformedEnd = getTransformedPosition(x2, y2);
     int x0 = transformedStart.first;
@@ -28,8 +28,5 @@ Pixels LineSegment::drawAntiAliased() {
     int x1 = transformedEnd.first;
     int y1 = transformedEnd.second;
 
-    Pixels points;
-    points = wuLine(x0, y0, x1, y1);
-
-    return points;
+    wuLine(pixels, x0, y0, x1, y1);
 }

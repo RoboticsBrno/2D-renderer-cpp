@@ -18,8 +18,8 @@ class Circle : public Shape {
   public:
     Circle(const CircleParams &params);
     Collider *defaultCollider() override;
-    Pixels drawAntiAliased() override;
-    Pixels drawAliased() override;
+    void drawAntiAliased(Pixels &pixels) override;
+    void drawAliased(Pixels &pixels) override;
     int getRadius() const;
 
   private:

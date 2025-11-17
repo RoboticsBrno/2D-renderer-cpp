@@ -21,10 +21,11 @@ class Rectangle : public Shape {
   public:
     Rectangle(const RectangleParams &params);
     Collider *defaultCollider() override;
-    Pixels drawAntiAliased() override;
-    Pixels drawAliased() override;
+    void drawAntiAliased(Pixels &pixels) override;
+    void drawAliased(Pixels &pixels) override;
 
   private:
     std::vector<std::pair<int, int>> getVertices();
-    Pixels getInsidePoints(const std::vector<std::pair<int, int>> &vertices);
+    void getInsidePoints(Pixels &points,
+                         const std::vector<std::pair<int, int>> &vertices);
 };

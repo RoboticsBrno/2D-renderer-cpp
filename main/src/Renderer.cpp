@@ -4,20 +4,16 @@
 Renderer::Renderer(int width, int height, const Color &backgroundColor)
     : width(width), height(height), backgroundColor(backgroundColor) {}
 
-Pixels Renderer::render(const std::vector<Collection *> &collections,
+void Renderer::render(Pixels &pixels,
+                        const std::vector<Collection *> &collections,
                         const DrawOptions &options) {
-    Pixels pixels;
-
+    pixels.reserve(10000);
     std::vector<Collection *> sortedCollections = collections;
     std::sort(
         sortedCollections.begin(), sortedCollections.end(),
         [](Collection *a, Collection *b) { return a->getZ() < b->getZ(); });
 
     for (Collection *collection : sortedCollections) {
-        Pixels collectionPixels = PROFILE_FUNC_RET(collection->draw(options));
-        pixels.insert(pixels.end(), collectionPixels.begin(),
-                      collectionPixels.end());
+        PROFILE_FUNC(collection->draw(pixels, options));
     }
-
-    return pixels;
 }

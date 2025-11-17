@@ -1,4 +1,3 @@
-#include "Joystick.hpp"
 #include "LineSegment.hpp"
 #include "Point.hpp"
 #include "Polygon.hpp"
@@ -9,7 +8,6 @@
 #include "Shapes/Collection.hpp"
 #include "Shapes/Rectangle.hpp"
 #include "Utils.hpp"
-#include "driver/adc.h"
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "freertos/idf_additions.h"
@@ -90,7 +88,8 @@ void runSolarSystem() {
         earthCollection->rotate(1.5f);
         moonCollection->rotate(3.0f);
 
-        Pixels pixels = renderer.render(collections, options);
+        Pixels pixels;
+        renderer.render(pixels, collections, options);
         display.setBuffer(pixels);
 
         uint64_t frameEndTime = esp_timer_get_time();
@@ -185,8 +184,9 @@ void runTestShapes() {
         return;
     }
 
-    Pixels pixels = PROFILE_FUNC_RET(
-        renderer.render(std::vector<Collection *>{mainCollection}, options));
+    Pixels pixels;
+    PROFILE_FUNC(renderer.render(
+        pixels, std::vector<Collection *>{mainCollection}, options));
     profile_print_results();
     while (true) {
         display.setBuffer(pixels);
@@ -243,58 +243,11 @@ void runCollisionTest() {
         // Apply gravity for next frame
         velocityY += gravity;
 
-        Pixels pixels =
-            renderer.render(std::vector<Collection *>{mainCollection}, options);
+        Pixels pixels;
+        renderer.render(pixels, std::vector<Collection *>{mainCollection},
+                        options);
         display.setBuffer(pixels);
         vTaskDelay(1);
-    }
-}
-Joystick joystick(ADC_UNIT_2, ADC_CHANNEL_3, ADC_CHANNEL_4);
-void runJoystickTest() {
-    int x_adc = 0;
-    int y_adc = 0;
-
-    if (!joystick.begin()) {
-        ESP_LOGE("MAIN", "Failed to initialize joystick");
-        return;
-    }
-
-    // Optional: Force recalibration (uncomment if needed)
-    // joystick.calibrate(5000); // 5-second calibration
-
-    // Optional: Configure settings
-    joystick.setDeadzone(15);    // 15% deadzone
-    joystick.setSampleCount(50); // 50 samples per reading
-
-    while (1) {
-        // Get calibrated position
-        Joystick::Position pos = joystick.getPosition();
-
-        // Get raw values for debugging
-        Joystick::Position raw = joystick.getRawPosition();
-
-        // Print results
-        ESP_LOGI("MAIN", "Calibrated: X=%3d%%, Y=%3d%% | Raw: X=%4d, Y=%4d",
-                 pos.x, pos.y, raw.x, raw.y);
-
-        // Use utility methods
-        if (joystick.isCentered()) {
-            ESP_LOGI("MAIN", "CENTERED");
-        }
-        if (joystick.isLeft()) {
-            ESP_LOGI("MAIN", "LEFT");
-        }
-        if (joystick.isRight()) {
-            ESP_LOGI("MAIN", "RIGHT");
-        }
-        if (joystick.isUp()) {
-            ESP_LOGI("MAIN", "UP");
-        }
-        if (joystick.isDown()) {
-            ESP_LOGI("MAIN", "DOWN");
-        }
-
-        vTaskDelay(pdMS_TO_TICKS(200));
     }
 }
 

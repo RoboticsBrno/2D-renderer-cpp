@@ -16,7 +16,7 @@ class Renderer {
     Renderer(int width, int height,
              const Color &backgroundColor = Color(255, 255, 255, 1.0f));
 
-    Pixels render(const std::vector<Collection *> &collections,
+    void render(Pixels &pixels, const std::vector<Collection *> &collections,
                   const DrawOptions &options);
 
     static Pixels blendPixels(const Pixels &pixels);
