@@ -13,9 +13,16 @@ idf_component_register(SRCS
     "src/Shapes/Point.cpp"
     "src/Shapes/RegularPolygon.cpp"
     "src/Shapes/Collection.cpp"
+    "examples/SolarSystem.cpp"
+    "examples/TestShapes.cpp"
+    "examples/CollisionTest.cpp"
+    "examples/Fire.cpp"
+    "examples/Platformer.cpp"
+    "examples/SpaceShooter.cpp"
     INCLUDE_DIRS 
     "include"
     "include/Shapes"
+    "include/examples"
     REQUIRES ESP32-HUB75-MatrixPanel-I2S-DMA
     PRIV_REQUIRES esp_timer perfmon)
 
