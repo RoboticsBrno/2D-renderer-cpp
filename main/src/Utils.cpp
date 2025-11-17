@@ -66,7 +66,7 @@ void HUB75Display::setPixels(const Pixels &pixels) {
     }
 }
 
-void HUB75Display::setBuffer(const Pixels &pixels) {
+void HUB75Display::setBuffer(const Pixels &pixels, bool clearPrevious) {
     if (!initialized)
         return;
 
@@ -78,12 +78,15 @@ void HUB75Display::setBuffer(const Pixels &pixels) {
         }
     }
 
-    for (int i = 0; i < width * height; ++i) {
-        if (!currentFrameMask[i] && previousBuffer[i].color != Color{0, 0, 0}) {
-            int x = i % width;
-            int y = i / width;
-            setPixel(x, y, Color{0, 0, 0});
-            previousBuffer[i].color = Color{0, 0, 0};
+    if (clearPrevious) {
+        for (int i = 0; i < width * height; ++i) {
+            if (!currentFrameMask[i] &&
+                previousBuffer[i].color != Color{0, 0, 0}) {
+                int x = i % width;
+                int y = i / width;
+                setPixel(x, y, Color{0, 0, 0});
+                previousBuffer[i].color = Color{0, 0, 0};
+            }
         }
     }
 

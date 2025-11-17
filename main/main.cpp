@@ -1,3 +1,4 @@
+#include "Joystick.hpp"
 #include "LineSegment.hpp"
 #include "Point.hpp"
 #include "Polygon.hpp"
@@ -8,7 +9,8 @@
 #include "Shapes/Collection.hpp"
 #include "Shapes/Rectangle.hpp"
 #include "Utils.hpp"
-#include "esp_task_wdt.h"
+#include "driver/adc.h"
+#include "esp_log.h"
 #include "esp_timer.h"
 #include "freertos/idf_additions.h"
 #include "freertos/projdefs.h"
@@ -17,7 +19,6 @@
 #include <cstdio>
 #include <stdio.h>
 #include <vector>
-
 void runSolarSystem() {
     const int width = 64;
     const int height = 64;
@@ -248,8 +249,56 @@ void runCollisionTest() {
         vTaskDelay(1);
     }
 }
+Joystick joystick(ADC_UNIT_2, ADC_CHANNEL_3, ADC_CHANNEL_4);
+void runJoystickTest() {
+    int x_adc = 0;
+    int y_adc = 0;
+
+    if (!joystick.begin()) {
+        ESP_LOGE("MAIN", "Failed to initialize joystick");
+        return;
+    }
+
+    // Optional: Force recalibration (uncomment if needed)
+    // joystick.calibrate(5000); // 5-second calibration
+
+    // Optional: Configure settings
+    joystick.setDeadzone(15);    // 15% deadzone
+    joystick.setSampleCount(50); // 50 samples per reading
+
+    while (1) {
+        // Get calibrated position
+        Joystick::Position pos = joystick.getPosition();
+
+        // Get raw values for debugging
+        Joystick::Position raw = joystick.getRawPosition();
+
+        // Print results
+        ESP_LOGI("MAIN", "Calibrated: X=%3d%%, Y=%3d%% | Raw: X=%4d, Y=%4d",
+                 pos.x, pos.y, raw.x, raw.y);
+
+        // Use utility methods
+        if (joystick.isCentered()) {
+            ESP_LOGI("MAIN", "CENTERED");
+        }
+        if (joystick.isLeft()) {
+            ESP_LOGI("MAIN", "LEFT");
+        }
+        if (joystick.isRight()) {
+            ESP_LOGI("MAIN", "RIGHT");
+        }
+        if (joystick.isUp()) {
+            ESP_LOGI("MAIN", "UP");
+        }
+        if (joystick.isDown()) {
+            ESP_LOGI("MAIN", "DOWN");
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(200));
+    }
+}
 
 extern "C" int app_main(void) {
-    runCollisionTest();
+    runTestShapes();
     return 0;
 }

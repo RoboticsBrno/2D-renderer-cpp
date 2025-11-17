@@ -78,7 +78,7 @@ class HUB75Display {
 
     void setPixels(const Pixels &pixels);
 
-    void setBuffer(const Pixels &pixels);
+    void setBuffer(const Pixels &pixels, bool clearPrevious = true);
 
     void fill(const Color &color);
 
