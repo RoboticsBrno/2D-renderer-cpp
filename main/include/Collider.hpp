@@ -74,7 +74,7 @@ inline bool pointInPolygon(int x, int y,
         int xj = points[j].first, yj = points[j].second;
 
         bool intersect = ((yi > y) != (yj > y)) &&
-                         (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+                         (x < (float)(xj - xi) * (y - yi) / (float)(yj - yi) + xi);
         if (intersect)
             inside = !inside;
     }
@@ -278,8 +278,8 @@ class RegularPolygonCollider : public Collider {
         std::vector<std::pair<int, int>> points;
         for (int i = 0; i < sides; i++) {
             float angle = (i * 2 * M_PI / sides) - M_PI / 2;
-            points.push_back(
-                {std::cos(angle) * radius, std::sin(angle) * radius});
+            points.push_back({(int)std::round(std::cos(angle) * radius),
+                               (int)std::round(std::sin(angle) * radius)});
         }
         return points;
     }

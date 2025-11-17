@@ -60,6 +60,7 @@ class Shape {
     virtual ~Shape();
 
     void addCollider(Collider *collider = nullptr);
+    Collider *getCollider() const { return collider; }
     virtual Collider *defaultCollider() = 0;
     void removeCollider();
     bool intersects(Shape *other);
@@ -78,6 +79,7 @@ class Shape {
     float getY() const { return y; }
     float getZ() const { return z; }
     const Color &getColor() const { return color; }
+    void setColor(const Color &color) { this->color = color; }
 
   protected:
     std::pair<int, int> getTransformedPosition(int x, int y);

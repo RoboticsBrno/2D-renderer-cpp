@@ -23,6 +23,8 @@ class Rectangle : public Shape {
     Collider *defaultCollider() override;
     void drawAntiAliased(Pixels &pixels) override;
     void drawAliased(Pixels &pixels) override;
+    int getWidth() const { return width; }
+    int getHeight() const { return height; }
 
   private:
     std::vector<std::pair<int, int>> getVertices();

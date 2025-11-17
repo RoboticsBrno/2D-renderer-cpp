@@ -118,11 +118,10 @@ bool IntersectionVisitor::visitPoint(const PointCollider *point) {
 
 bool IntersectionVisitor::visitRegularPolygon(
     const RegularPolygonCollider *regularPolygon) {
-    auto polygonPoints = regularPolygon->generateRegularPolygonPoints();
-    PolygonCollider polygon(regularPolygon->x, regularPolygon->y,
-                            polygonPoints);
-    IntersectionVisitor polygonVisitor(&polygon);
-    return other->accept(&polygonVisitor);
+    CircleCollider circle(regularPolygon->x, regularPolygon->y,
+                          regularPolygon->radius);
+    IntersectionVisitor circleVisitor(&circle);
+    return other->accept(&circleVisitor);
 }
 
 bool IntersectionVisitor::circleCircle(const CircleCollider *c1,
@@ -199,10 +198,9 @@ bool IntersectionVisitor::circlePolygon(const CircleCollider *circle,
 bool IntersectionVisitor::circleRegularPolygon(
     const CircleCollider *circle,
     const RegularPolygonCollider *regularPolygon) {
-    auto polygonPoints = regularPolygon->generateRegularPolygonPoints();
-    PolygonCollider polygon(regularPolygon->x, regularPolygon->y,
-                            polygonPoints);
-    return circlePolygon(circle, &polygon);
+    CircleCollider otherCircle(regularPolygon->x, regularPolygon->y,
+                               regularPolygon->radius);
+    return circleCircle(circle, &otherCircle);
 }
 
 bool IntersectionVisitor::rectangleRectangle(const RectangleCollider *r1,
@@ -295,10 +293,9 @@ bool IntersectionVisitor::rectanglePolygon(const RectangleCollider *rect,
 bool IntersectionVisitor::rectangleRegularPolygon(
     const RectangleCollider *rect,
     const RegularPolygonCollider *regularPolygon) {
-    auto polygonPoints = regularPolygon->generateRegularPolygonPoints();
-    PolygonCollider polygon(regularPolygon->x, regularPolygon->y,
-                            polygonPoints);
-    return rectanglePolygon(rect, &polygon);
+    CircleCollider circle(regularPolygon->x, regularPolygon->y,
+                          regularPolygon->radius);
+    return circleRectangle(&circle, rect);
 }
 
 bool IntersectionVisitor::polygonPoint(const PolygonCollider *polygon,
@@ -381,10 +378,9 @@ bool IntersectionVisitor::polygonPolygon(const PolygonCollider *p1,
 bool IntersectionVisitor::polygonRegularPolygon(
     const PolygonCollider *polygon,
     const RegularPolygonCollider *regularPolygon) {
-    auto regularPolygonPoints = regularPolygon->generateRegularPolygonPoints();
-    PolygonCollider regularAsPolygon(regularPolygon->x, regularPolygon->y,
-                                     regularPolygonPoints);
-    return polygonPolygon(polygon, &regularAsPolygon);
+    CircleCollider circle(regularPolygon->x, regularPolygon->y,
+                          regularPolygon->radius);
+    return circlePolygon(&circle, polygon);
 }
 
 bool IntersectionVisitor::linePoint(const LineSegmentCollider *line,
@@ -413,10 +409,9 @@ bool IntersectionVisitor::lineLine(const LineSegmentCollider *l1,
 bool IntersectionVisitor::lineRegularPolygon(
     const LineSegmentCollider *line,
     const RegularPolygonCollider *regularPolygon) {
-    auto polygonPoints = regularPolygon->generateRegularPolygonPoints();
-    PolygonCollider polygon(regularPolygon->x, regularPolygon->y,
-                            polygonPoints);
-    return polygonLine(&polygon, line);
+    CircleCollider circle(regularPolygon->x, regularPolygon->y,
+                          regularPolygon->radius);
+    return circleLine(&circle, line);
 }
 
 bool IntersectionVisitor::pointPoint(const PointCollider *p1,
@@ -426,8 +421,7 @@ bool IntersectionVisitor::pointPoint(const PointCollider *p1,
 
 bool IntersectionVisitor::pointRegularPolygon(
     const PointCollider *point, const RegularPolygonCollider *regularPolygon) {
-    auto polygonPoints = regularPolygon->generateRegularPolygonPoints();
-    PolygonCollider polygon(regularPolygon->x, regularPolygon->y,
-                            polygonPoints);
-    return polygonPoint(&polygon, point);
+    CircleCollider circle(regularPolygon->x, regularPolygon->y,
+                          regularPolygon->radius);
+    return circlePoint(&circle, point);
 }
