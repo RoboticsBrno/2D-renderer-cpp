@@ -1,16 +1,6 @@
 #include "Collection.hpp"
 #include "../Profiler.hpp"
-
-template <typename T, typename Compare>
-void simple_sort(std::vector<T> &vec, Compare comp) {
-    for (size_t i = 0; i < vec.size(); ++i) {
-        for (size_t j = i + 1; j < vec.size(); ++j) {
-            if (comp(vec[j], vec[i])) {
-                std::swap(vec[i], vec[j]);
-            }
-        }
-    }
-}
+#include <algorithm>
 
 Collection::Collection(const ShapeParams &params) : Shape(params) {}
 
@@ -29,8 +19,8 @@ void Collection::addShape(Shape *shape) {
 
 void Collection::drawAntiAliased(Pixels &pixels) {
     std::vector<Shape *> sortedShapes = shapes;
-    simple_sort(sortedShapes,
-                [](Shape *a, Shape *b) { return a->getZ() < b->getZ(); });
+    std::sort(sortedShapes.begin(), sortedShapes.end(),
+              [](Shape *a, Shape *b) { return a->getZ() < b->getZ(); });
 
     for (Shape *shape : sortedShapes) {
         PROFILE_FUNC(shape->drawAntiAliased(pixels));
@@ -39,8 +29,8 @@ void Collection::drawAntiAliased(Pixels &pixels) {
 
 void Collection::drawAliased(Pixels &pixels) {
     std::vector<Shape *> sortedShapes = shapes;
-    simple_sort(sortedShapes,
-                [](Shape *a, Shape *b) { return a->getZ() < b->getZ(); });
+    std::sort(sortedShapes.begin(), sortedShapes.end(),
+              [](Shape *a, Shape *b) { return a->getZ() < b->getZ(); });
 
     for (Shape *shape : sortedShapes) {
         shape->drawAliased(pixels);

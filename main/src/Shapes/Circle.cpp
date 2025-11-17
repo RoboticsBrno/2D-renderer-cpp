@@ -46,63 +46,77 @@ void Circle::drawAntiAliasedPoint(Pixels &points, int cx, int cy, int x, int y,
 }
 
 void Circle::fillCircle(Pixels &points, int cx, int cy, int r) {
-    int r2 = r * r;
-    int minY = cy - r;
-    int maxY = cy + r;
+    points.reserve(points.size() + 3.14159f * r * r);
+    int x = 0;
+    int y = r;
+    int d = 3 - 2 * r;
 
-    points.reserve(points.size() + (2 * r + 1) * (2 * r + 1));
-
-    for (int y = minY; y <= maxY; y++) {
-        int dy = y - cy;
-        int dy2 = dy * dy;
-
-        if (dy2 > r2)
-            continue;
-
-        int dx = static_cast<int>(std::sqrt(r2 - dy2));
-        int startX = cx - dx;
-        int endX = cx + dx;
-
-        for (int x = startX; x <= endX; x++) {
-            Color sampledColor = sampleTexture(x, y);
+    auto drawline = [&](int x1, int y1, int x2, int y2) {
+        for (int i = x1; i <= x2; i++) {
+            Color sampledColor = sampleTexture(i, y1);
             sampledColor.a = 1.0f;
-            points.push_back(Pixel(x, y, sampledColor));
+            points.push_back(Pixel(i, y1, sampledColor));
+        }
+    };
+
+    while (y >= x) {
+        drawline(cx - x, cy + y, cx + x, cy + y);
+        if (y != 0) {
+            drawline(cx - x, cy - y, cx + x, cy - y);
+        }
+        if (x != y) {
+            drawline(cx - y, cy + x, cx + y, cy + x);
+            if (x != 0) {
+                drawline(cx - y, cy - x, cx + y, cy - x);
+            }
+        }
+
+        x++;
+        if (d > 0) {
+            y--;
+            d = d + 4 * (x - y) + 10;
+        } else {
+            d = d + 4 * x + 6;
         }
     }
 }
 
 void Circle::fillCircleAntiAliased(Pixels &points, int cx, int cy, int r) {
-    int r2 = r * r;
-    int minY = cy - r;
-    int maxY = cy + r;
-    int minX = cx - r;
-    int maxX = cx + r;
+    points.reserve(points.size() + 3.14159f * r * r);
+    int x = 0;
+    int y = r;
+    int d = 3 - 2 * r;
 
-    points.reserve(points.size() + (2 * r + 1) * (2 * r + 1));
-
-    for (int y = minY; y <= maxY; y++) {
-        int dy = y - cy;
-        int dy2 = dy * dy;
-
-        if (dy2 > r2)
-            continue;
-
-        for (int x = minX; x <= maxX; x++) {
-            int dx = x - cx;
-            int dx2 = dx * dx;
-
-            int dist2 = dx2 + dy2;
-
-            if (dist2 <= r2) {
-                Color sampledColor = sampleTexture(x, y);
-                float alpha = sampledColor.a;
-
-                if (alpha > 0.01f) {
-                    points.push_back(Pixel(x, y,
-                                           Color(sampledColor.r, sampledColor.g,
-                                                 sampledColor.b, alpha)));
-                }
+    auto drawline = [&](int x1, int y1, int x2, int y2) {
+        for (int i = x1; i <= x2; i++) {
+            Color sampledColor = sampleTexture(i, y1);
+            float alpha = sampledColor.a;
+            if (alpha > 0.01f) {
+                points.push_back(Pixel(i, y1,
+                                       Color(sampledColor.r, sampledColor.g,
+                                             sampledColor.b, alpha)));
             }
+        }
+    };
+
+    while (y >= x) {
+        drawline(cx - x, cy + y, cx + x, cy + y);
+        if (y != 0) {
+            drawline(cx - x, cy - y, cx + x, cy - y);
+        }
+        if (x != y) {
+            drawline(cx - y, cy + x, cx + y, cy + x);
+            if (x != 0) {
+                drawline(cx - y, cy - x, cx + y, cy - x);
+            }
+        }
+
+        x++;
+        if (d > 0) {
+            y--;
+            d = d + 4 * (x - y) + 10;
+        } else {
+            d = d + 4 * x + 6;
         }
     }
 }
