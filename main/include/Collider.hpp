@@ -56,6 +56,12 @@ class Collider : public Collidable {
         x = newX;
         y = newY;
     }
+
+    void setX(int newX) { x = newX; }
+    void setY(int newY) { y = newY; }
+
+    int getX() const { return x; }
+    int getY() const { return y; }
 };
 
 namespace CollisionMath {
@@ -73,8 +79,9 @@ inline bool pointInPolygon(int x, int y,
         int xi = points[i].first, yi = points[i].second;
         int xj = points[j].first, yj = points[j].second;
 
-        bool intersect = ((yi > y) != (yj > y)) &&
-                         (x < (float)(xj - xi) * (y - yi) / (float)(yj - yi) + xi);
+        bool intersect =
+            ((yi > y) != (yj > y)) &&
+            (x < (float)(xj - xi) * (y - yi) / (float)(yj - yi) + xi);
         if (intersect)
             inside = !inside;
     }
@@ -157,6 +164,9 @@ class CircleCollider : public Collider {
 
     CircleCollider(int x, int y, int radius) : Collider(x, y), radius(radius) {}
 
+    int getRadius() const { return radius; }
+    void setRadius(int radius) { this->radius = radius; }
+
     bool accept(CollisionVisitor *visitor) const override {
         return visitor->visitCircle(this);
     }
@@ -177,6 +187,11 @@ class RectangleCollider : public Collider {
     RectangleCollider(int x, int y, int width, int height)
         : Collider(x, y), width(width), height(height) {}
 
+    int getWidth() const { return width; }
+    int getHeight() const { return height; }
+    void setWidth(int width) { this->width = width; }
+    void setHeight(int height) { this->height = height; }
+
     bool accept(CollisionVisitor *visitor) const override {
         return visitor->visitRectangle(this);
     }
@@ -196,6 +211,8 @@ class PolygonCollider : public Collider {
     PolygonCollider(int x, int y,
                     const std::vector<std::pair<int, int>> &points)
         : Collider(x, y), points(points) {}
+
+    const std::vector<std::pair<int, int>> &getPoints() const { return points; }
 
     bool accept(CollisionVisitor *visitor) const override {
         return visitor->visitPolygon(this);
@@ -224,6 +241,11 @@ class LineSegmentCollider : public Collider {
 
     LineSegmentCollider(int x1, int y1, int x2, int y2)
         : Collider(x1, y1), x2(x2), y2(y2) {}
+
+    int getX2() const { return x2; }
+    int getY2() const { return y2; }
+    void setX2(int x2) { this->x2 = x2; }
+    void setY2(int y2) { this->y2 = y2; }
 
     bool accept(CollisionVisitor *visitor) const override {
         return visitor->visitLine(this);
@@ -261,6 +283,11 @@ class RegularPolygonCollider : public Collider {
     RegularPolygonCollider(int x, int y, int sides, int radius)
         : Collider(x, y), sides(sides), radius(radius) {}
 
+    int getSides() const { return sides; }
+    int getRadius() const { return radius; }
+    void setSides(int sides) { this->sides = sides; }
+    void setRadius(int radius) { this->radius = radius; }
+
     bool accept(CollisionVisitor *visitor) const override {
         return visitor->visitRegularPolygon(this);
     }
@@ -279,7 +306,7 @@ class RegularPolygonCollider : public Collider {
         for (int i = 0; i < sides; i++) {
             float angle = (i * 2 * M_PI / sides) - M_PI / 2;
             points.push_back({(int)std::round(std::cos(angle) * radius),
-                               (int)std::round(std::sin(angle) * radius)});
+                              (int)std::round(std::sin(angle) * radius)});
         }
         return points;
     }
