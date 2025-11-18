@@ -18,6 +18,15 @@ int RegularPolygon::getRadius() {
     return radius;
 }
 
+void RegularPolygon::setSides(int sides) {
+    this->sides = sides;
+}
+
+void RegularPolygon::setRadius(int radius) {
+    this->radius = radius;
+    this->useSideLength = false;
+}
+
 int RegularPolygon::calculateRadiusFromSideLength(int sideLength) {
     return sideLength / (2 * std::sin(M_PI / sides));
 }

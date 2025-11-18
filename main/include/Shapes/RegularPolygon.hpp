@@ -41,6 +41,9 @@ class RegularPolygon : public Shape {
     int getSides() const;
     int getRadius();
 
+    void setSides(int sides);
+    void setRadius(int radius);
+
   private:
     int calculateRadiusFromSideLength(int sideLength);
     std::vector<std::pair<int, int>> getVertices();
