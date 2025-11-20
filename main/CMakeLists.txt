@@ -5,6 +5,7 @@ idf_component_register(SRCS
     "src/Utils.cpp"
     "src/Texture.cpp"
     "src/Collider.cpp"
+    "src/Font.cpp"
     "src/Shapes/Shape.cpp"
     "src/Shapes/Circle.cpp"
     "src/Shapes/Rectangle.cpp"
@@ -19,10 +20,12 @@ idf_component_register(SRCS
     "examples/Fire.cpp"
     "examples/Platformer.cpp"
     "examples/SpaceShooter.cpp"
+    "examples/TextExample.cpp"
     INCLUDE_DIRS 
     "include"
     "include/Shapes"
     "include/examples"
+    "include/Font"
     REQUIRES ESP32-HUB75-MatrixPanel-I2S-DMA
     PRIV_REQUIRES esp_timer perfmon)
 

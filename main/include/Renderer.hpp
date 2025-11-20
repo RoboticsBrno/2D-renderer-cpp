@@ -1,4 +1,5 @@
 #pragma once
+#include "Font/Font.hpp"
 #include "Shapes/Collection.hpp"
 #include "Utils.hpp"
 #include <algorithm>
@@ -17,7 +18,10 @@ class Renderer {
              const Color &backgroundColor = Color(255, 255, 255, 1.0f));
 
     void render(Pixels &pixels, const std::vector<Collection *> &collections,
-                  const DrawOptions &options);
+                const DrawOptions &options);
+
+    void drawText(Pixels &pixels, const std::string &text, int x, int y,
+                  const Font &font, const Color &color, bool wrap = false);
 
     static Pixels blendPixels(const Pixels &pixels);
     static Pixel blendPixel(const Pixel &background, const Pixel &foreground);

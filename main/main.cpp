@@ -4,6 +4,7 @@
 #include "examples/SolarSystem.hpp"
 #include "examples/SpaceShooter.hpp"
 #include "examples/TestShapes.hpp"
+#include "examples/TextExample.hpp"
 
 extern "C" int app_main(void) {
     // To run an example, uncomment it and comment out the others
@@ -12,6 +13,7 @@ extern "C" int app_main(void) {
     // runCollisionTest();
     // runFire();
     // runPlatformer();
-    runSpaceShooter();
+    // runSpaceShooter();
+    runTextExample();
     return 0;
 }
