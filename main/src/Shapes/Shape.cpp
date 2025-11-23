@@ -1,5 +1,4 @@
 #include "Shape.hpp"
-#include "../Profiler.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -193,7 +192,6 @@ void Shape::setParent(Shape *parent) { this->parent = parent; }
 
 // Transformation and coordinate methods
 std::pair<int, int> Shape::getTransformedPosition(int x, int y) {
-    PROFILE_START();
     int currentX = x;
     int currentY = y;
 
@@ -225,7 +223,6 @@ std::pair<int, int> Shape::getTransformedPosition(int x, int y) {
         currentY = parentTransformed.second;
     }
 
-    PROFILE_END("Shape::getTransformedPosition");
     return {std::round(currentX), std::round(currentY)};
 }
 
@@ -272,7 +269,6 @@ void Shape::bresenhamLine(Pixels &points, int x0, int y0, int x1, int y1) {
 
 void Shape::wuLine(Pixels &points, int x0_int, int y0_int, int x1_int,
                    int y1_int) {
-    PROFILE_START();
     float x0 = static_cast<float>(x0_int);
     float y0 = static_cast<float>(y0_int);
     float x1 = static_cast<float>(x1_int);
@@ -353,7 +349,6 @@ void Shape::wuLine(Pixels &points, int x0_int, int y0_int, int x1_int,
             intery += gradient;
         }
     }
-    PROFILE_END("wuLine");
 }
 
 // Pixel manipulation

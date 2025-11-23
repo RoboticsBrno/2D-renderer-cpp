@@ -1,5 +1,4 @@
 #include "Renderer.hpp"
-#include "Profiler.hpp"
 
 Renderer::Renderer(int width, int height, const Color &backgroundColor)
     : width(width), height(height), backgroundColor(backgroundColor) {}
@@ -14,7 +13,7 @@ void Renderer::render(Pixels &pixels,
         [](Collection *a, Collection *b) { return a->getZ() < b->getZ(); });
 
     for (Collection *collection : sortedCollections) {
-        PROFILE_FUNC(collection->draw(pixels, options));
+        collection->draw(pixels, options);
     }
 }
 

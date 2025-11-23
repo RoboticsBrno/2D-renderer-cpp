@@ -5,7 +5,6 @@
 extern "C" {
 #endif
 
-#include "esp_timer.h"
 #include <stdint.h>
 
 #ifndef MAX_PROFILED_FUNCTIONS

@@ -1,5 +1,4 @@
 #include "Circle.hpp"
-#include "../Profiler.hpp"
 #include "../Utils.hpp"
 #include <cmath>
 
@@ -147,7 +146,6 @@ void Circle::drawAliased(Pixels &pixels) {
 }
 
 void Circle::drawAntiAliased(Pixels &pixels) {
-    PROFILE_START();
     auto center = getTransformedPosition(x, y);
     int r = radius;
 
@@ -178,5 +176,4 @@ void Circle::drawAntiAliased(Pixels &pixels) {
     if (fill) {
         fillCircleAntiAliased(pixels, center.first, center.second, r);
     }
-    PROFILE_END("Circle::drawAntiAliased");
 }

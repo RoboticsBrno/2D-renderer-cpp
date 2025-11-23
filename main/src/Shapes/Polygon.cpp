@@ -1,5 +1,4 @@
 #include "Polygon.hpp"
-#include "../Profiler.hpp"
 
 Polygon::Polygon(const PolygonParams &params)
     : Shape(params), vertices(params.vertices), fill(params.fill) {
@@ -78,7 +77,6 @@ void Polygon::drawAliased(Pixels &pixels) {
 }
 
 void Polygon::drawAntiAliased(Pixels &pixels) {
-    PROFILE_START();
     auto transformedVertices = getTransformedVertices();
 
     if (transformedVertices.size() >= 3) {
@@ -93,7 +91,6 @@ void Polygon::drawAntiAliased(Pixels &pixels) {
     if (fill) {
         getInsidePoints(pixels, transformedVertices);
     }
-    PROFILE_END("Polygon::drawAntiAliased");
 }
 void Polygon::getInsidePointsWithTexture(
     Pixels &points, const std::vector<std::pair<int, int>> &vertices) {

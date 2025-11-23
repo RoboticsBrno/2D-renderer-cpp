@@ -1,29 +1,17 @@
 #include "examples/Platformer.hpp"
-#include "LineSegment.hpp"
-#include "Point.hpp"
-#include "Polygon.hpp"
-#include "Profiler.hpp"
-#include "RegularPolygon.hpp"
 #include "Renderer.hpp"
-#include "Shapes/Circle.hpp"
 #include "Shapes/Collection.hpp"
 #include "Shapes/Rectangle.hpp"
 #include "Utils.hpp"
 #include "driver/gpio.h"
 #include "esp_log.h"
 #include "esp_timer.h"
-#include "freertos/FreeRTOS.h"
 #include "freertos/idf_additions.h"
 #include "freertos/projdefs.h"
 #include "freertos/task.h"
-#include "portmacro.h"
 #include <cstdint>
-#include <cstdio>
-#include <cstdlib>
-#include <stdio.h>
 #include <vector>
 
-// Copied from main.cpp, required by the examples
 void init_input_gpio(int gpio_num) {
     gpio_config_t io_conf = {.pin_bit_mask = (1ULL << gpio_num),
                              .mode = GPIO_MODE_INPUT,
@@ -48,10 +36,8 @@ void runPlatformer() {
     // --- Game Setup ---
     const int width = 64;
     const int height = 64;
-    Renderer renderer(width, height,
-                      Color(40, 40, 80, 1.0f)); // Dark purple-blue sky
-    DrawOptions options = {width, height,
-                           false}; // No anti-aliasing for blocky style
+    Renderer renderer(width, height, Color(40, 40, 80, 1.0f));
+    DrawOptions options = {width, height, false};
 
     HUB75Display display(width, height);
     if (!display.isInitialized()) {
@@ -123,20 +109,18 @@ void runPlatformer() {
 
         // 2. Vertical Movement & Collision
         velocityY += gravity;
-        float oldPlayerY =
-            player->getY(); // Store position before vertical movement
+        float oldPlayerY = player->getY();
         player->translate(0.0f, velocityY);
         canJump = false;
         for (auto *platform : platforms) {
             if (player->intersects(platform)) {
-                // Only land on the platform if the player was above it in the
-                // previous frame
+
                 if (velocityY > 0 &&
                     oldPlayerY + player->getHeight() <= platform->getY() + 1) {
                     player->setPosition(player->getX(),
                                         platform->getY() - player->getHeight());
                     velocityY = 0;
-                    canJump = true; // Landed on a platform
+                    canJump = true;
                 }
             }
         }
@@ -148,7 +132,7 @@ void runPlatformer() {
         if (player->getX() + player->getWidth() > width) {
             player->setPosition(width - player->getWidth(), player->getY());
         }
-        if (player->getY() > height) { // Fell off the bottom
+        if (player->getY() > height) {
             player->setPosition(10, 48);
             velocityY = 0;
         }
@@ -160,7 +144,7 @@ void runPlatformer() {
         display.setBuffer(pixels);
 
         // --- Frame Rate Control ---
-        const uint64_t TARGET_FRAME_TIME_US = 1000000 / 30; // 50 FPS
+        const uint64_t TARGET_FRAME_TIME_US = 1000000 / 30;
         uint64_t frameEndTime = esp_timer_get_time();
         uint64_t frameTime = frameEndTime - frameStartTime;
         if (frameTime < TARGET_FRAME_TIME_US) {
@@ -169,6 +153,5 @@ void runPlatformer() {
         }
     }
 
-    // Cleanup (won't be reached in this infinite loop)
     delete mainCollection;
 }

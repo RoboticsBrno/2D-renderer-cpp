@@ -1,15 +1,11 @@
 #include "TextureTest.hpp"
 #include "Collection.hpp"
-#include "Profiler.hpp"
 #include "Rectangle.hpp"
 #include "Renderer.hpp"
 #include "Shape.hpp"
 #include "Texture.hpp"
 #include "Utils.hpp"
 #include "esp_log.h"
-#include "esp_timer.h"
-#include <cstdint>
-#include <vector>
 
 static const char *TAG = "TextureTest";
 

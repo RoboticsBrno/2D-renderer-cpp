@@ -1,9 +1,7 @@
 #include "Texture.hpp"
-#include "Profiler.hpp"
 #include "esp_littlefs.h"
 #include "esp_log.h"
 #include <algorithm>
-#include <cmath>
 #include <cstring>
 
 static const char *TAG = "Texture";
@@ -56,7 +54,6 @@ bool Texture::readFile(const std::string &filename,
         return false;
     }
 
-    // Get file size
     fseek(file, 0, SEEK_END);
     long fileSize = ftell(file);
     fseek(file, 0, SEEK_SET);
@@ -67,7 +64,6 @@ bool Texture::readFile(const std::string &filename,
         return false;
     }
 
-    // Read file content
     buffer.resize(fileSize);
     size_t bytesRead = fread(buffer.data(), 1, fileSize, file);
     fclose(file);
@@ -118,7 +114,6 @@ bool Texture::fromBMP(const std::string &filename, Texture &outTexture,
 
     const uint8_t *data = fileData.data();
 
-    // Check BMP signature
     uint16_t signature = getUint16(data, 0, littleEndian);
     if (signature != 0x4D42) {
         ESP_LOGE(TAG, "Invalid BMP file signature: 0x%04X", signature);
@@ -126,7 +121,7 @@ bool Texture::fromBMP(const std::string &filename, Texture &outTexture,
     }
 
     uint32_t pixelDataOffset = getUint32(data, 10, littleEndian);
-    uint32_t headerSize = getUint32(data, 14, littleEndian); // Add this!
+    uint32_t headerSize = getUint32(data, 14, littleEndian);
     int32_t width = getInt32(data, 18, littleEndian);
     int32_t height = getInt32(data, 22, littleEndian);
     uint16_t bitsPerPixel = getUint16(data, 28, littleEndian);
@@ -135,7 +130,6 @@ bool Texture::fromBMP(const std::string &filename, Texture &outTexture,
              "BMP info: %dx%d, %d bpp, header: %d bytes, data offset: 0x%X",
              width, height, bitsPerPixel, headerSize, pixelDataOffset);
 
-    // Handle different header sizes
     if (headerSize != 40 && headerSize != 124 && headerSize != 108 &&
         headerSize != 56) {
         ESP_LOGW(TAG, "Unusual BMP header size: %d bytes", headerSize);

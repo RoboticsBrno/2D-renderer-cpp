@@ -1,22 +1,8 @@
 #include "examples/Fire.hpp"
-#include "LineSegment.hpp"
-#include "Point.hpp"
-#include "Polygon.hpp"
-#include "Profiler.hpp"
-#include "RegularPolygon.hpp"
-#include "Renderer.hpp"
-#include "Shapes/Circle.hpp"
-#include "Shapes/Collection.hpp"
-#include "Shapes/Rectangle.hpp"
 #include "Utils.hpp"
-#include "driver/gpio.h"
-#include "esp_log.h"
-#include "esp_timer.h"
-#include "freertos/FreeRTOS.h"
 #include "freertos/idf_additions.h"
 #include "freertos/projdefs.h"
 #include "freertos/task.h"
-#include "portmacro.h"
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -24,9 +10,7 @@
 #include <vector>
 
 void runFire() {
-
     const int width = 64;
-
     const int height = 64;
 
     const int COOLING =
@@ -103,13 +87,10 @@ void runFire() {
         // 3. Render fire buffer to the display buffer
         pixels.clear();
         for (int y = 0; y < height; y++) {
-
             for (int x = 0; x < width; x++) {
-
                 uint8_t temp = fire[y * width + x];
 
                 if (temp > 0) {
-
                     pixels.push_back(Pixel(x, y, palette[temp]));
                 }
             }

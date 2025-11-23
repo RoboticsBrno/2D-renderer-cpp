@@ -1,5 +1,4 @@
 #include "Rectangle.hpp"
-#include "Profiler.hpp"
 
 Rectangle::Rectangle(const RectangleParams &params)
     : Shape(params), width(params.width), height(params.height),
@@ -68,7 +67,6 @@ void Rectangle::getInsidePoints(
     }
 }
 void Rectangle::drawAntiAliased(Pixels &pixels) {
-    PROFILE_START();
     auto vertices = getVertices();
 
     if (vertices.size() >= 4) {
@@ -84,9 +82,8 @@ void Rectangle::drawAntiAliased(Pixels &pixels) {
     }
 
     if (fill) {
-        PROFILE_FUNC(getInsidePoints(pixels, vertices));
+        getInsidePoints(pixels, vertices);
     }
-    PROFILE_END("Rectangle::drawAntiAliased");
 }
 
 void Rectangle::drawAliased(Pixels &pixels) {

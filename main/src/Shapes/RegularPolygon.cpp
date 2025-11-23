@@ -1,5 +1,4 @@
 #include "RegularPolygon.hpp"
-#include "../Profiler.hpp"
 #include <cmath>
 
 RegularPolygon::RegularPolygon(const RegularPolygonSideParams &params)
@@ -142,8 +141,7 @@ void RegularPolygon::drawAliased(Pixels &pixels) {
 }
 
 void RegularPolygon::drawAntiAliased(Pixels &pixels) {
-    PROFILE_START();
-    auto vertices = PROFILE_FUNC_RET(getVertices());
+    auto vertices = getVertices();
 
     if (vertices.size() >= 3) {
         for (size_t i = 0; i < vertices.size(); i++) {
@@ -154,9 +152,8 @@ void RegularPolygon::drawAntiAliased(Pixels &pixels) {
     }
 
     if (fill) {
-        PROFILE_FUNC(getInsidePoints(pixels, vertices));
+        getInsidePoints(pixels, vertices);
     }
-    PROFILE_END("RegularPolygon::drawAntiAliased");
 }
 
 void RegularPolygon::getInsidePointsWithTexture(

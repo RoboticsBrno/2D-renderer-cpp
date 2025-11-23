@@ -2,8 +2,6 @@
 #include "Font/Font.hpp"
 #include "Shapes/Collection.hpp"
 #include "Utils.hpp"
-#include <algorithm>
-#include <map>
 #include <string>
 #include <vector>
 

@@ -1,5 +1,4 @@
 #include "Collection.hpp"
-#include "../Profiler.hpp"
 #include <algorithm>
 
 Collection::Collection(const ShapeParams &params) : Shape(params) {}
@@ -23,7 +22,7 @@ void Collection::drawAntiAliased(Pixels &pixels) {
               [](Shape *a, Shape *b) { return a->getZ() < b->getZ(); });
 
     for (Shape *shape : sortedShapes) {
-        PROFILE_FUNC(shape->drawAntiAliased(pixels));
+        shape->drawAntiAliased(pixels);
     }
 }
 

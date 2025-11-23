@@ -1,27 +1,14 @@
 #include "examples/CollisionTest.hpp"
-#include "LineSegment.hpp"
-#include "Point.hpp"
-#include "Polygon.hpp"
-#include "Profiler.hpp"
 #include "RegularPolygon.hpp"
 #include "Renderer.hpp"
-#include "Shapes/Circle.hpp"
 #include "Shapes/Collection.hpp"
 #include "Shapes/Rectangle.hpp"
 #include "Utils.hpp"
-#include "driver/gpio.h"
-#include "esp_log.h"
-#include "esp_timer.h"
-#include "freertos/FreeRTOS.h"
 #include "freertos/idf_additions.h"
 #include "freertos/projdefs.h"
 #include "freertos/task.h"
-#include "portmacro.h"
-#include <cstdint>
 #include <cstdio>
-#include <cstdlib>
 #include <stdio.h>
-#include <vector>
 
 void runCollisionTest() {
     const int width = 64;
