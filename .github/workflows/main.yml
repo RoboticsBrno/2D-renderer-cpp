@@ -20,13 +20,8 @@ jobs:
       run: |
         git clone https://github.com/mrfaptastic/ESP32-HUB75-MatrixPanel-I2S-DMA.git components/ESP32-HUB75-MatrixPanel-I2S-DMA
       
-    - name: Setup ESP-IDF
+    - name: Build with ESP-IDF
       uses: espressif/esp-idf-ci-action@v1
       with:
-        esp_idf_version: v5.1.2
+        esp_idf_version: latest
         target: esp32s3
-        
-    - name: Build project
-      run: |
-        . $IDF_PATH/export.sh
-        idf.py build
