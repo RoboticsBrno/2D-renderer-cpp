@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 
+// Constructor & Destructor
 Shape::Shape(const ShapeParams &params)
     : x(params.x), y(params.y), color(params.color), z(params.z),
       parent(nullptr), texture(nullptr), fixTexture(false), collider(nullptr) {
@@ -17,6 +18,7 @@ Shape::~Shape() {
     }
 }
 
+// Cache management
 void Shape::updateTrigCache() {
     if (!trigCacheValid) {
         float angleRad = rotation.angle * M_PI / 180.0f;
@@ -35,6 +37,7 @@ void Shape::updateTextureTrigCache() {
     }
 }
 
+// Collider methods
 void Shape::addCollider(Collider *collider) {
     if (collider) {
         this->collider = collider;
@@ -57,11 +60,12 @@ bool Shape::intersects(Shape *other) {
     return false;
 }
 
-void Shape::translate(float dx, float dy) {
-    x += dx;
-    y += dy;
+// Position and transformation methods
+void Shape::setPosition(int x, int y) {
+    this->x = x;
+    this->y = y;
     if (collider) {
-        collider->translate(dx, dy);
+        collider->setPosition(x, y);
     }
 }
 
@@ -72,6 +76,55 @@ void Shape::translate(int dx, int dy) {
         collider->translate(dx, dy);
     }
 }
+
+void Shape::translate(float dx, float dy) {
+    x += dx;
+    y += dy;
+    if (collider) {
+        collider->translate(dx, dy);
+    }
+}
+
+void Shape::rotate(float angle) {
+    rotation.angle = std::fmod(rotation.angle + angle, 360.0f);
+    invalidateTrigCache();
+}
+
+void Shape::setPivot(int x, int y) {
+    rotation.x = x;
+    rotation.y = y;
+}
+
+void Shape::setZ(int z) { this->z = z; }
+
+// Scaling methods
+void Shape::setScale(float scaleX, float scaleY, float originX, float originY) {
+    scale.x = scaleX;
+    scale.y = scaleY;
+    if (originX != -1)
+        scale.originX = originX;
+    if (originY != -1)
+        scale.originY = originY;
+}
+
+void Shape::scaleX(float scaleX, float originX) {
+    scale.x = scaleX;
+    if (originX != -1)
+        scale.originX = originX;
+}
+
+void Shape::scaleY(float scaleY, float originY) {
+    scale.y = scaleY;
+    if (originY != -1)
+        scale.originY = originY;
+}
+
+void Shape::setScaleOrigin(int x, int y) {
+    scale.originX = x;
+    scale.originY = y;
+}
+
+// Texture methods
 void Shape::setTexture(Texture *texture) { this->texture = texture; }
 
 void Shape::setTextureScale(float scaleX, float scaleY) {
@@ -86,12 +139,12 @@ void Shape::setTextureOffset(float offsetX, float offsetY) {
     uvTransform.offsetY = offsetY;
 }
 
-void Shape::setFixTexture(bool fixed) { fixTexture = fixed; }
-
 void Shape::setTextureRotation(float rotation) {
     uvTransform.rotation = rotation;
     invalidateTexTrigCache();
 }
+
+void Shape::setFixTexture(bool fixed) { fixTexture = fixed; }
 
 Color Shape::sampleTexture(int x, int y) {
     if (!texture)
@@ -134,8 +187,11 @@ Color Shape::sampleTexture(int x, int y) {
     texColor.a = texColor.a * color.a;
     return texColor;
 }
+
+// Parent-child relationship
 void Shape::setParent(Shape *parent) { this->parent = parent; }
 
+// Transformation and coordinate methods
 std::pair<int, int> Shape::getTransformedPosition(int x, int y) {
     PROFILE_START();
     int currentX = x;
@@ -173,6 +229,12 @@ std::pair<int, int> Shape::getTransformedPosition(int x, int y) {
     return {std::round(currentX), std::round(currentY)};
 }
 
+// Drawing methods
+void Shape::draw(Pixels &pixels, const DrawOptions &options) {
+    options.antialias ? drawAntiAliased(pixels) : drawAliased(pixels);
+}
+
+// Line drawing algorithms
 void Shape::bresenhamLine(Pixels &points, int x0, int y0, int x1, int y1) {
     int dx = std::abs(x1 - x0);
     int dy = std::abs(y1 - y0);
@@ -293,6 +355,8 @@ void Shape::wuLine(Pixels &points, int x0_int, int y0_int, int x1_int,
     }
     PROFILE_END("wuLine");
 }
+
+// Pixel manipulation
 void Shape::addPixel(Pixels &points, int x, int y, float alpha) {
     if (alpha < 0.01f)
         return;
@@ -314,58 +378,8 @@ void Shape::addPixel(Pixels &points, int x, int y, float alpha) {
 
     points.push_back(Pixel(x, y, pixelColor));
 }
-void Shape::setScale(float scaleX, float scaleY, float originX, float originY) {
-    scale.x = scaleX;
-    scale.y = scaleY;
-    if (originX != -1)
-        scale.originX = originX;
-    if (originY != -1)
-        scale.originY = originY;
-}
 
-void Shape::scaleX(float scaleX, float originX) {
-    scale.x = scaleX;
-    if (originX != -1)
-        scale.originX = originX;
-}
-
-void Shape::scaleY(float scaleY, float originY) {
-    scale.y = scaleY;
-    if (originY != -1)
-        scale.originY = originY;
-}
-
-void Shape::setScaleOrigin(int x, int y) {
-    scale.originX = x;
-    scale.originY = y;
-}
-
-void Shape::changeColor(const Color &color) { this->color = color; }
-
-void Shape::setZ(int z) { this->z = z; }
-
-void Shape::setPosition(int x, int y) {
-    this->x = x;
-    this->y = y;
-    if (collider) {
-        collider->setPosition(x, y);
-    }
-}
-
-void Shape::rotate(float angle) {
-    rotation.angle = std::fmod(rotation.angle + angle, 360.0f);
-    invalidateTrigCache();
-}
-
-void Shape::setPivot(int x, int y) {
-    rotation.x = x;
-    rotation.y = y;
-}
-
-void Shape::draw(Pixels &pixels, const DrawOptions &options) {
-    options.antialias ? drawAntiAliased(pixels) : drawAliased(pixels);
-}
-
+// Fill algorithms
 void Shape::getInsidePoints(Pixels &points,
                             const std::vector<std::pair<int, int>> &vertices) {
     if (vertices.empty())
