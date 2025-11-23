@@ -25,8 +25,8 @@ jobs:
       with:
         esp_idf_version: latest
         target: esp32s3
+        command: ''
         
     - name: Build project
       run: |
-        . $IDF_PATH/export.sh
         idf.py build
