@@ -18,9 +18,7 @@ int RegularPolygon::getRadius() {
     return radius;
 }
 
-void RegularPolygon::setSides(int sides) {
-    this->sides = sides;
-}
+void RegularPolygon::setSides(int sides) { this->sides = sides; }
 
 void RegularPolygon::setRadius(int radius) {
     this->radius = radius;
@@ -130,16 +128,16 @@ std::vector<std::pair<int, int>> RegularPolygon::getVertices() {
 void RegularPolygon::drawAliased(Pixels &pixels) {
     auto vertices = getVertices();
 
-    if (fill) {
-        getInsidePoints(pixels, vertices);
-    }
-
     if (vertices.size() >= 3) {
         for (size_t i = 0; i < vertices.size(); i++) {
             size_t j = (i + 1) % vertices.size();
             bresenhamLine(pixels, vertices[i].first, vertices[i].second,
                           vertices[j].first, vertices[j].second);
         }
+    }
+
+    if (fill) {
+        getInsidePoints(pixels, vertices);
     }
 }
 

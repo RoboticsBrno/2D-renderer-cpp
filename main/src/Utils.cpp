@@ -1,5 +1,6 @@
 #include "Utils.hpp"
 #include "ESP32-HUB75-MatrixPanel-I2S-DMA.h"
+#include <cstring>
 
 bool operator==(const Color &lhs, const Color &rhs) {
     return lhs.r == rhs.r && lhs.g == rhs.g && lhs.b == rhs.b && lhs.a == rhs.a;
@@ -29,6 +30,8 @@ HUB75Display::HUB75Display(int panelWidth, int panelHeight, int chainLength)
         initialized = true;
 
         previousBuffer.resize(width * height, Pixel{0, 0, Colors::BLACK});
+        m_current_frame_buffer.resize(width * height);
+        m_pixel_is_set.resize(width * height);
 
         display->setBrightness8(90);
         display->clearScreen();
@@ -70,35 +73,38 @@ void HUB75Display::setBuffer(const Pixels &pixels, bool clearPrevious) {
     if (!initialized)
         return;
 
-    std::vector<bool> currentFrameMask(width * height, false);
+    memset(m_pixel_is_set.data(), 0, m_pixel_is_set.size());
+
     for (const auto &pixel : pixels) {
-        if (pixel.x >= 0 && pixel.x < width && pixel.y >= 0 &&
-            pixel.y < height) {
-            currentFrameMask[pixel.y * width + pixel.x] = true;
+        if (isValidCoordinate(pixel.x, pixel.y)) {
+            int index = pixel.y * width + pixel.x;
+            m_current_frame_buffer[index] = pixel.color;
+            m_pixel_is_set[index] = 1;
         }
     }
 
-    if (clearPrevious) {
-        for (int i = 0; i < width * height; ++i) {
-            if (!currentFrameMask[i] &&
-                previousBuffer[i].color != Color{0, 0, 0}) {
-                int x = i % width;
-                int y = i / width;
-                setPixel(x, y, Color{0, 0, 0});
-                previousBuffer[i].color = Color{0, 0, 0};
+    int i = 0;
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x, ++i) {
+            const Color &old_color = previousBuffer[i].color;
+            Color new_color;
+
+            if (m_pixel_is_set[i]) {
+                new_color = m_current_frame_buffer[i];
+            } else {
+                if (clearPrevious) {
+                    new_color = Colors::BLACK;
+                } else {
+                    new_color = old_color;
+                }
             }
-        }
-    }
 
-    for (const auto &pixel : pixels) {
-        if (pixel.x < 0 || pixel.x >= width || pixel.y < 0 ||
-            pixel.y >= height) {
-            continue;
-        }
-        int pos = pixel.y * width + pixel.x;
-        if (pixel != previousBuffer[pos]) {
-            setPixel(pixel.x, pixel.y, pixel.color);
-            previousBuffer[pos] = pixel;
+            if (!(new_color == old_color)) {
+                setPixel(x, y, new_color);
+                previousBuffer[i].color = new_color;
+                previousBuffer[i].x = x;
+                previousBuffer[i].y = y;
+            }
         }
     }
 }

@@ -15,7 +15,7 @@ class Renderer {
 
   public:
     Renderer(int width, int height,
-             const Color &backgroundColor = Color(255, 255, 255, 1.0f));
+             const Color &backgroundColor = Color(0, 0, 0, 1.0f));
 
     void render(Pixels &pixels, const std::vector<Collection *> &collections,
                 const DrawOptions &options);

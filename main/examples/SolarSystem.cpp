@@ -102,7 +102,7 @@ void runSolarSystem() {
         uint64_t frameEndTime = esp_timer_get_time();
         uint64_t frameTime = frameEndTime - frameStartTime;
 
-        // vTaskDelay(1);
+        vTaskDelay(1);
         if (frameTime < TARGET_FRAME_TIME_US) {
             uint64_t remainingTime = TARGET_FRAME_TIME_US - frameTime;
             TickType_t delayTicks =

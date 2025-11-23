@@ -1,5 +1,5 @@
 #include "Rectangle.hpp"
-#include "../Profiler.hpp"
+#include "Profiler.hpp"
 
 Rectangle::Rectangle(const RectangleParams &params)
     : Shape(params), width(params.width), height(params.height),
@@ -26,47 +26,50 @@ void Rectangle::getInsidePoints(
     if (vertices.size() < 4)
         return;
 
-    int minX = vertices[0].first;
-    int maxX = vertices[0].first;
-    int minY = vertices[0].second;
-    int maxY = vertices[0].second;
+    int minX = std::min({vertices[0].first, vertices[1].first,
+                         vertices[2].first, vertices[3].first});
+    int maxX = std::max({vertices[0].first, vertices[1].first,
+                         vertices[2].first, vertices[3].first});
+    int minY = std::min({vertices[0].second, vertices[1].second,
+                         vertices[2].second, vertices[3].second});
+    int maxY = std::max({vertices[0].second, vertices[1].second,
+                         vertices[2].second, vertices[3].second});
 
-    for (const auto &v : vertices) {
-        minX = std::min(minX, v.first);
-        maxX = std::max(maxX, v.first);
-        minY = std::min(minY, v.second);
-        maxY = std::max(maxY, v.second);
-    }
+    int v0x = vertices[0].first, v0y = vertices[0].second;
+    int v1x = vertices[1].first, v1y = vertices[1].second;
+    int v3x = vertices[3].first, v3y = vertices[3].second;
 
-    for (int x = static_cast<int>(minX); x <= static_cast<int>(maxX); x++) {
-        for (int y = static_cast<int>(minY); y <= static_cast<int>(maxY); y++) {
-            bool inside = false;
-            size_t n = vertices.size();
-            for (size_t i = 0, j = n - 1; i < n; j = i++) {
-                int xi = vertices[i].first, yi = vertices[i].second;
-                int xj = vertices[j].first, yj = vertices[j].second;
+    int side1x = v1x - v0x;
+    int side1y = v1y - v0y;
 
-                bool intersect = ((yi > y) != (yj > y)) &&
-                                 (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-                if (intersect)
-                    inside = !inside;
-            }
+    int side2x = v3x - v0x;
+    int side2y = v3y - v0y;
 
-            if (inside) {
-                Color sampledColor = sampleTexture(x, y);
-                points.push_back(Pixel(x, y, sampledColor));
+    int dot11 = side1x * side1x + side1y * side1y;
+    int dot22 = side2x * side2x + side2y * side2y;
+    int dot12 = side1x * side2x + side1y * side2y;
+    float invDenom = 1.0f / (dot11 * dot22 - dot12 * dot12);
+
+    for (int y = minY; y <= maxY; ++y) {
+        for (int x = minX; x <= maxX; ++x) {
+            int pointVecX = x - v0x;
+            int pointVecY = y - v0y;
+
+            float dot1p = pointVecX * side1x + pointVecY * side1y;
+            float dot2p = pointVecX * side2x + pointVecY * side2y;
+
+            float u = (dot22 * dot1p - dot12 * dot2p) * invDenom;
+            float v = (dot11 * dot2p - dot12 * dot1p) * invDenom;
+
+            if (u >= 0.0f && u <= 1.0f && v >= 0.0f && v <= 1.0f) {
+                points.push_back(Pixel(x, y, sampleTexture(x, y)));
             }
         }
     }
 }
-
 void Rectangle::drawAntiAliased(Pixels &pixels) {
     PROFILE_START();
     auto vertices = getVertices();
-
-    if (fill) {
-        getInsidePoints(pixels, vertices);
-    }
 
     if (vertices.size() >= 4) {
         auto tl = vertices[0];
@@ -79,15 +82,15 @@ void Rectangle::drawAntiAliased(Pixels &pixels) {
         wuLine(pixels, tl.first, tl.second, bl.first, bl.second);
         wuLine(pixels, tr.first, tr.second, br.first, br.second);
     }
+
+    if (fill) {
+        PROFILE_FUNC(getInsidePoints(pixels, vertices));
+    }
     PROFILE_END("Rectangle::drawAntiAliased");
 }
 
 void Rectangle::drawAliased(Pixels &pixels) {
     auto vertices = getVertices();
-
-    if (fill) {
-        getInsidePoints(pixels, vertices);
-    }
 
     if (vertices.size() >= 4) {
         auto tl = vertices[0];
@@ -99,5 +102,9 @@ void Rectangle::drawAliased(Pixels &pixels) {
         bresenhamLine(pixels, bl.first, bl.second, br.first, br.second);
         bresenhamLine(pixels, tl.first, tl.second, bl.first, bl.second);
         bresenhamLine(pixels, tr.first, tr.second, br.first, br.second);
+    }
+
+    if (fill) {
+        getInsidePoints(pixels, vertices);
     }
 }

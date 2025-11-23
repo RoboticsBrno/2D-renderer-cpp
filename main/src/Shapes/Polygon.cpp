@@ -62,10 +62,6 @@ void Polygon::getInsidePoints(
 void Polygon::drawAliased(Pixels &pixels) {
     auto transformedVertices = getTransformedVertices();
 
-    if (fill) {
-        getInsidePoints(pixels, transformedVertices);
-    }
-
     if (transformedVertices.size() >= 3) {
         for (size_t i = 0; i < transformedVertices.size(); i++) {
             size_t j = (i + 1) % transformedVertices.size();
@@ -74,6 +70,10 @@ void Polygon::drawAliased(Pixels &pixels) {
                           transformedVertices[j].first,
                           transformedVertices[j].second);
         }
+    }
+
+    if (fill) {
+        getInsidePoints(pixels, transformedVertices);
     }
 }
 
@@ -85,8 +85,7 @@ void Polygon::drawAntiAliased(Pixels &pixels) {
         for (size_t i = 0; i < transformedVertices.size(); i++) {
             size_t j = (i + 1) % transformedVertices.size();
             wuLine(pixels, transformedVertices[i].first,
-                   transformedVertices[i].second,
-                   transformedVertices[j].first,
+                   transformedVertices[i].second, transformedVertices[j].first,
                    transformedVertices[j].second);
         }
     }

@@ -46,6 +46,8 @@ class HUB75Display {
     bool initialized;
     static const char *TAG;
     Pixels previousBuffer;
+    std::vector<Color> m_current_frame_buffer;
+    std::vector<uint8_t> m_pixel_is_set;
 
     HUB75_I2S_CFG::i2s_pins getDefaultPins() {
         return {
