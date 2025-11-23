@@ -21,9 +21,18 @@ struct ShapeParams {
 };
 
 class Shape {
+  private:
+    float cosAngle = 1.0f, sinAngle = 0.0f;
+    float texCos = 1.0f, texSin = 0.0f;
+    bool trigCacheValid = false;
+    bool texTrigCacheValid = false;
+
+    void updateTrigCache();
+    void updateTextureTrigCache();
+
   protected:
-    int x;
-    int y;
+    float x;
+    float y;
     Color color;
 
     struct Rotation {
@@ -48,6 +57,8 @@ class Shape {
     struct UVTransform {
         float scaleX;
         float scaleY;
+        float invScaleX;
+        float invScaleY;
         float offsetX;
         float offsetY;
         float rotation;
@@ -65,6 +76,7 @@ class Shape {
     void removeCollider();
     bool intersects(Shape *other);
     void translate(int dx, int dy);
+    void translate(float dx, float dy);
 
     void setTexture(Texture *texture);
     Texture *getTexture() const { return texture; }
@@ -81,17 +93,29 @@ class Shape {
     float getUVOffsetY() const { return uvTransform.offsetY; }
     float getUVRotation() const { return uvTransform.rotation; }
 
-    void setUVScaleX(float scaleX) { this->uvTransform.scaleX = scaleX; }
-    void setUVScaleY(float scaleY) { this->uvTransform.scaleY = scaleY; }
+    void setUVScaleX(float scaleX) {
+        this->uvTransform.scaleX = scaleX;
+        this->uvTransform.invScaleX = 1.0f / scaleX;
+    }
+    void setUVScaleY(float scaleY) {
+        this->uvTransform.scaleY = scaleY;
+        this->uvTransform.invScaleY = 1.0f / scaleY;
+    }
     void setUVOffsetX(float offsetX) { this->uvTransform.offsetX = offsetX; }
     void setUVOffsetY(float offsetY) { this->uvTransform.offsetY = offsetY; }
-    void setUVRotation(float rotation) { this->uvTransform.rotation = rotation; }
+    void setUVRotation(float rotation) {
+        this->uvTransform.rotation = rotation;
+        invalidateTexTrigCache();
+    }
 
     void setParent(Shape *parent);
     Shape *getParent() const { return parent; }
 
-    int getX() const { return x; }
-    int getY() const { return y; }
+    void invalidateTrigCache() { trigCacheValid = false; }
+    void invalidateTexTrigCache() { texTrigCacheValid = false; }
+
+    float getX() const { return x; }
+    float getY() const { return y; }
     int getZ() const { return z; }
     const Color &getColor() const { return color; }
 

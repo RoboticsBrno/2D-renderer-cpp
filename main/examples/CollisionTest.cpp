@@ -47,8 +47,8 @@ void runCollisionTest() {
         return;
     }
 
-    printf("Triangle Collider position: (%d, %d)\n", triangle->getCollider()->x,
-           triangle->getCollider()->y);
+    printf("Triangle Collider position: (%.2f, %.2f)\n",
+           triangle->getCollider()->x, triangle->getCollider()->y);
     Pixels pixels;
     while (true) {
         pixels.clear();
@@ -57,7 +57,7 @@ void runCollisionTest() {
 
         if (triangle->intersects(enemy)) {
             triangle->setColor(Color(255, 0, 0, 1.0f)); // Red on collision
-            printf("Collision detected at enemy position (%d, %d)\n",
+            printf("Collision detected at enemy position (%.2f, %.2f)\n",
                    enemy->getCollider()->x, enemy->getCollider()->y);
         } else {
             triangle->setColor(Color(0, 255, 0, 1.0f)); // Green otherwise

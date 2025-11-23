@@ -1,4 +1,5 @@
 #include "examples/SpaceShooter.hpp"
+#include "Font.hpp"
 #include "RegularPolygon.hpp"
 #include "Renderer.hpp"
 #include "Shapes/Collection.hpp"
@@ -11,7 +12,10 @@
 #include "freertos/projdefs.h"
 #include "freertos/task.h"
 #include <cstdint>
+#include <cstdio>
 #include <cstdlib>
+#include <iterator>
+#include <string>
 #include <vector>
 
 // Copied from main.cpp, required by the examples
@@ -45,6 +49,7 @@ void runSpaceShooter() {
         ESP_LOGE(TAG, "Display not initialized. Halting.");
         return;
     }
+    Font font = defaultFont;
 
     // --- Game Objects & State ---
     int score = 0;
@@ -135,10 +140,10 @@ void runSpaceShooter() {
             // --- Player Movement ---
             float player_speed = 1.5f;
             if (left_pressed && player->getX() > player->getRadius()) {
-                player->translate(-player_speed, 0);
+                player->translate(-player_speed, 0.0f);
             }
             if (right_pressed && player->getX() < width - player->getRadius()) {
-                player->translate(player_speed, 0);
+                player->translate(player_speed, 0.0f);
             }
 
             // --- Shooting ---
@@ -175,7 +180,7 @@ void runSpaceShooter() {
             // Update active bullets
             for (int i = 0; i < MAX_BULLETS; ++i) {
                 if (bullet_active[i]) {
-                    bullet_pool[i]->translate(0, -4.0f);
+                    bullet_pool[i]->translate(0.0f, -4.0f);
                     if (bullet_pool[i]->getY() < 0) {
                         bullet_active[i] = false;
                         bullet_pool[i]->setPosition(OFF_SCREEN_POS,
@@ -188,7 +193,7 @@ void runSpaceShooter() {
             float enemy_speed = 1.0f + (score / 150.0f);
             for (int i = 0; i < MAX_ENEMIES; ++i) {
                 if (enemy_active[i]) {
-                    enemy_pool[i]->translate(0, enemy_speed);
+                    enemy_pool[i]->translate(0.0f, enemy_speed);
                     if (enemy_pool[i]->getY() > height) {
                         enemy_active[i] = false;
                         enemy_pool[i]->setPosition(OFF_SCREEN_POS,
@@ -229,8 +234,14 @@ void runSpaceShooter() {
                     pixels.push_back(Pixel(x, y, Color(100, 0, 0, 1.0f)));
                 }
             }
+            renderer.drawText(pixels, "GAME OVER", 8, height / 2 - 8, font,
+                              Color(255, 255, 255, 1.0f));
+            renderer.drawText(pixels, "SCORE: " + std::to_string(score), 7,
+                              height / 2 + 8, font, Color(255, 255, 255, 1.0f));
         } else {
             renderer.render(pixels, all_collections, options);
+            renderer.drawText(pixels, std::to_string(score), 0, 0, font,
+                              Color(0, 255, 0, 1.0f));
         }
         display.setBuffer(pixels);
 

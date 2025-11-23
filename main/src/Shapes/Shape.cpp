@@ -8,12 +8,30 @@ Shape::Shape(const ShapeParams &params)
       parent(nullptr), texture(nullptr), fixTexture(false), collider(nullptr) {
     rotation = {params.x, params.y, 0.0f};
     scale = {1.0f, 1.0f, params.x, params.y};
-    uvTransform = {1.0f, 1.0f, 0.0f, 0.0f, 0.0f};
+    uvTransform = {1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f};
 }
 
 Shape::~Shape() {
     if (collider) {
         delete collider;
+    }
+}
+
+void Shape::updateTrigCache() {
+    if (!trigCacheValid) {
+        float angleRad = rotation.angle * M_PI / 180.0f;
+        cosAngle = std::cos(angleRad);
+        sinAngle = std::sin(angleRad);
+        trigCacheValid = true;
+    }
+}
+
+void Shape::updateTextureTrigCache() {
+    if (!texTrigCacheValid) {
+        float angleRad = uvTransform.rotation * M_PI / 180.0f;
+        texCos = std::cos(angleRad);
+        texSin = std::sin(angleRad);
+        texTrigCacheValid = true;
     }
 }
 
@@ -39,7 +57,7 @@ bool Shape::intersects(Shape *other) {
     return false;
 }
 
-void Shape::translate(int dx, int dy) {
+void Shape::translate(float dx, float dy) {
     x += dx;
     y += dy;
     if (collider) {
@@ -47,11 +65,20 @@ void Shape::translate(int dx, int dy) {
     }
 }
 
+void Shape::translate(int dx, int dy) {
+    x += dx;
+    y += dy;
+    if (collider) {
+        collider->translate(dx, dy);
+    }
+}
 void Shape::setTexture(Texture *texture) { this->texture = texture; }
 
 void Shape::setTextureScale(float scaleX, float scaleY) {
     uvTransform.scaleX = scaleX;
     uvTransform.scaleY = scaleY;
+    uvTransform.invScaleX = 1.0f / scaleX;
+    uvTransform.invScaleY = 1.0f / scaleY;
 }
 
 void Shape::setTextureOffset(float offsetX, float offsetY) {
@@ -63,60 +90,50 @@ void Shape::setFixTexture(bool fixed) { fixTexture = fixed; }
 
 void Shape::setTextureRotation(float rotation) {
     uvTransform.rotation = rotation;
+    invalidateTexTrigCache();
 }
 
 Color Shape::sampleTexture(int x, int y) {
-    if (!texture) {
+    if (!texture)
         return color;
-    }
 
     int localX = x - this->x;
     int localY = y - this->y;
 
     if (fixTexture && rotation.angle != 0) {
-        float angleRad = -rotation.angle * M_PI / 180.0f;
-        float cos = std::cos(angleRad);
-        float sin = std::sin(angleRad);
+        updateTrigCache();
 
         int rotationOriginX = rotation.x;
         int rotationOriginY = rotation.y;
+        int originOffsetX = rotationOriginX - this->x;
+        int originOffsetY = rotationOriginY - this->y;
 
-        int translatedX = localX - (rotationOriginX - this->x);
-        int translatedY = localY - (rotationOriginY - this->y);
-
-        localX = translatedX * cos + translatedY * sin;
-        localY = -translatedX * sin + translatedY * cos;
-
-        localX += (rotationOriginX - this->x);
-        localY += (rotationOriginY - this->y);
+        int translatedX = localX - originOffsetX;
+        int translatedY = localY - originOffsetY;
+        localX =
+            translatedX * cosAngle - translatedY * sinAngle + originOffsetX;
+        localY =
+            translatedX * sinAngle + translatedY * cosAngle + originOffsetY;
     }
-
-    int u = (localX / uvTransform.scaleX + uvTransform.offsetX);
-    int v = (localY / uvTransform.scaleY + uvTransform.offsetY);
-
+    int u =
+        static_cast<int>(localX * uvTransform.invScaleX + uvTransform.offsetX);
+    int v =
+        static_cast<int>(localY * uvTransform.invScaleY + uvTransform.offsetY);
     if (uvTransform.rotation != 0) {
-        float texAngleRad = uvTransform.rotation * M_PI / 180.0f;
-        float texCos = std::cos(texAngleRad);
-        float texSin = std::sin(texAngleRad);
+        updateTextureTrigCache();
 
-        float texCenterX = 0.5f;
-        float texCenterY = 0.5f;
+        float texTranslatedU = u - 0.5f;
+        float texTranslatedV = v - 0.5f;
 
-        float texTranslatedU = u - texCenterX;
-        float texTranslatedV = v - texCenterY;
-
-        u = texTranslatedU * texCos - texTranslatedV * texSin + texCenterX;
-        v = texTranslatedU * texSin + texTranslatedV * texCos + texCenterY;
+        u = static_cast<int>(texTranslatedU * texCos - texTranslatedV * texSin +
+                             0.5f);
+        v = static_cast<int>(texTranslatedU * texSin + texTranslatedV * texCos +
+                             0.5f);
     }
-
     Color texColor = texture->sample(u, v);
-
-    return Color(static_cast<uint8_t>((color.r * texColor.r) / 255),
-                 static_cast<uint8_t>((color.g * texColor.g) / 255),
-                 static_cast<uint8_t>((color.b * texColor.b) / 255),
-                 color.a * texColor.a);
+    texColor.a = texColor.a * color.a;
+    return texColor;
 }
-
 void Shape::setParent(Shape *parent) { this->parent = parent; }
 
 std::pair<int, int> Shape::getTransformedPosition(int x, int y) {
@@ -130,18 +147,20 @@ std::pair<int, int> Shape::getTransformedPosition(int x, int y) {
     currentX = (currentX - scaleOriginX) * scale.x + scaleOriginX;
     currentY = (currentY - scaleOriginY) * scale.y + scaleOriginY;
 
-    float angleRad = rotation.angle * M_PI / 180.0f;
-    float cos = std::cos(angleRad);
-    float sin = std::sin(angleRad);
+    if (rotation.angle != 0) {
+        updateTrigCache();
 
-    int rotationOriginX = rotation.x;
-    int rotationOriginY = rotation.y;
+        int rotationOriginX = rotation.x;
+        int rotationOriginY = rotation.y;
 
-    int translatedX = currentX - rotationOriginX;
-    int translatedY = currentY - rotationOriginY;
+        int translatedX = currentX - rotationOriginX;
+        int translatedY = currentY - rotationOriginY;
 
-    currentX = translatedX * cos + translatedY * sin + rotationOriginX;
-    currentY = -translatedX * sin + translatedY * cos + rotationOriginY;
+        currentX =
+            translatedX * cosAngle + translatedY * sinAngle + rotationOriginX;
+        currentY =
+            -translatedX * sinAngle + translatedY * cosAngle + rotationOriginY;
+    }
 
     if (parent) {
         auto parentTransformed =
@@ -149,6 +168,7 @@ std::pair<int, int> Shape::getTransformedPosition(int x, int y) {
         currentX = parentTransformed.first;
         currentY = parentTransformed.second;
     }
+
     PROFILE_END("Shape::getTransformedPosition");
     return {std::round(currentX), std::round(currentY)};
 }
@@ -334,6 +354,7 @@ void Shape::setPosition(int x, int y) {
 
 void Shape::rotate(float angle) {
     rotation.angle = std::fmod(rotation.angle + angle, 360.0f);
+    invalidateTrigCache();
 }
 
 void Shape::setPivot(int x, int y) {
@@ -345,8 +366,8 @@ void Shape::draw(Pixels &pixels, const DrawOptions &options) {
     options.antialias ? drawAntiAliased(pixels) : drawAliased(pixels);
 }
 
-void Shape::getInsidePoints(
-    Pixels &points, const std::vector<std::pair<int, int>> &vertices) {
+void Shape::getInsidePoints(Pixels &points,
+                            const std::vector<std::pair<int, int>> &vertices) {
     if (vertices.empty())
         return;
 

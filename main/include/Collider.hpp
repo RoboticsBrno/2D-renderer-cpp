@@ -40,13 +40,17 @@ class Collidable {
 
 class Collider : public Collidable {
   public:
-    int x;
-    int y;
+    float x;
+    float y;
 
     Collider(int x, int y) : x(x), y(y) {}
     virtual ~Collider() = default;
 
     virtual bool intersects(const Collider *other) const = 0;
+    virtual void translate(float dx, float dy) {
+        x += dx;
+        y += dy;
+    }
     virtual void translate(int dx, int dy) {
         x += dx;
         y += dy;

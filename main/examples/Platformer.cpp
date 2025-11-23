@@ -119,13 +119,13 @@ void runPlatformer() {
         // --- Physics (Separated Axis) ---
 
         // 1. Horizontal Movement
-        player->translate(velocityX, 0);
+        player->translate(velocityX, 0.0f);
 
         // 2. Vertical Movement & Collision
         velocityY += gravity;
         float oldPlayerY =
             player->getY(); // Store position before vertical movement
-        player->translate(0, velocityY);
+        player->translate(0.0f, velocityY);
         canJump = false;
         for (auto *platform : platforms) {
             if (player->intersects(platform)) {
