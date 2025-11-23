@@ -1,5 +1,7 @@
+#include "TextureTest.hpp"
 #include "examples/CollisionTest.hpp"
 #include "examples/Fire.hpp"
+#include "examples/LittlefsTest.hpp"
 #include "examples/Platformer.hpp"
 #include "examples/SolarSystem.hpp"
 #include "examples/SpaceShooter.hpp"
@@ -13,7 +15,8 @@ extern "C" int app_main(void) {
     // runCollisionTest();
     // runFire();
     // runPlatformer();
-    // runSpaceShooter();
-    runTextExample();
+    runSpaceShooter();
+    // runLittlefsTest();
+    // runTextureTest();
     return 0;
 }

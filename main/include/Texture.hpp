@@ -1,6 +1,7 @@
 #pragma once
 #include "Utils.hpp"
 #include <cstdint>
+#include <string>
 #include <vector>
 
 class Texture {
@@ -8,16 +9,31 @@ class Texture {
     std::vector<std::vector<Color>> pixels;
     int width;
     int height;
-    const char *wrapMode; // "repeat" or "clamp"
+    std::string wrapMode;
+    bool valid;
 
   public:
     Texture(const std::vector<std::vector<Color>> &pixels);
+    Texture();
+
+    static bool fromBMP(const std::string &filename, Texture &outTexture,
+                        bool littleEndian = true);
+    static bool initFS();
+
+    Color sample(int u, int v) const;
+    void setWrapMode(const std::string &mode);
 
     int getWidth() const { return width; }
     int getHeight() const { return height; }
+    bool isValid() const { return valid; }
 
-    Color sample(int u, int v) const;
-    void setWrapMode(const char *mode) { wrapMode = mode; }
-
-    static Texture fromBMP(const uint8_t *data, size_t length);
+  private:
+    static bool readFile(const std::string &filename,
+                         std::vector<uint8_t> &buffer);
+    static uint16_t getUint16(const uint8_t *data, size_t offset,
+                              bool littleEndian = true);
+    static uint32_t getUint32(const uint8_t *data, size_t offset,
+                              bool littleEndian = true);
+    static int32_t getInt32(const uint8_t *data, size_t offset,
+                            bool littleEndian = true);
 };

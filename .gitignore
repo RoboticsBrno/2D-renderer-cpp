@@ -2,3 +2,4 @@ build/
 .cache/
 .github/
 dependencies.lock
+components/

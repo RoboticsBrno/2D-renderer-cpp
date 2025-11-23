@@ -21,6 +21,8 @@ idf_component_register(SRCS
     "examples/Platformer.cpp"
     "examples/SpaceShooter.cpp"
     "examples/TextExample.cpp"
+    "examples/LittlefsTest.cpp"
+    "examples/TextureTest.cpp"
     INCLUDE_DIRS 
     "include"
     "include/Shapes"
