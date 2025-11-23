@@ -3,3 +3,5 @@ build/
 .github/
 dependencies.lock
 components/
+managed_components/
+littlefs.bin
