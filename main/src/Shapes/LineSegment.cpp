@@ -1,6 +1,4 @@
-#include "LineSegment.hpp"
-#include "esp_timer.h"
-#include <cstdint>
+#include "Shapes/LineSegment.hpp"
 
 LineSegment::LineSegment(const LineSegmentParams &params)
     : Shape(params), x2(params.x2), y2(params.y2) {}
@@ -10,8 +8,11 @@ Collider *LineSegment::defaultCollider() {
 }
 
 void LineSegment::drawAliased(Pixels &pixels) {
-    auto transformedStart = getTransformedPosition(x, y);
-    auto transformedEnd = getTransformedPosition(x2, y2);
+    Matrix2D globalMat = getGlobalMatrix();
+
+    auto transformedStart = Shape::transformPoint(0, 0, globalMat);
+    auto transformedEnd = Shape::transformPoint(x2 - x, y2 - y, globalMat);
+
     int x0 = transformedStart.first;
     int y0 = transformedStart.second;
     int x1 = transformedEnd.first;
@@ -19,10 +20,11 @@ void LineSegment::drawAliased(Pixels &pixels) {
 
     bresenhamLine(pixels, x0, y0, x1, y1);
 }
-
 void LineSegment::drawAntiAliased(Pixels &pixels) {
-    auto transformedStart = getTransformedPosition(x, y);
-    auto transformedEnd = getTransformedPosition(x2, y2);
+    Matrix2D globalMat = getGlobalMatrix();
+
+    auto transformedStart = Shape::transformPoint(0, 0, globalMat);
+    auto transformedEnd = Shape::transformPoint(x2 - x, y2 - y, globalMat);
     int x0 = transformedStart.first;
     int y0 = transformedStart.second;
     int x1 = transformedEnd.first;

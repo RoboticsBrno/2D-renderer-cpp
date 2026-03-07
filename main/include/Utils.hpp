@@ -50,22 +50,20 @@ class HUB75Display {
     std::vector<uint8_t> m_pixel_is_set;
 
     HUB75_I2S_CFG::i2s_pins getDefaultPins() {
-        return {
-            .r1 = 4,   // R1 - Red for upper half
-            .g1 = 5,   // G1 - Green for upper half
-            .b1 = 6,   // B1 - Blue for upper half
-            .r2 = 7,   // R2 - Red for lower half
-            .g2 = 15,  // G2 - Green for lower half
-            .b2 = 16,  // B2 - Blue for lower half
-            .a = 18,   // A - Address line
-            .b = 8,    // B - Address line
-            .c = 3,    // C - Address line
-            .d = 42,   // D - Address line
-            .e = 17,   // E - Address line (set to -1 for 32x32 panels)
-            .lat = 40, // LAT - Latch pin
-            .oe = 2,   // OE - Output Enable pin
-            .clk = 41  // CLK - Clock pin
-        };
+        return {.r1 = 4,
+                .g1 = 5,
+                .b1 = 6,
+                .r2 = 7,
+                .g2 = 15,
+                .b2 = 16,
+                .a = 18,
+                .b = 8,
+                .c = 10,
+                .d = 42,
+                .e = 17,
+                .lat = 47,
+                .oe = 2,
+                .clk = 48};
     }
 
   public:

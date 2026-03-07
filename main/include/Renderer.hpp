@@ -2,6 +2,7 @@
 #include "Font/Font.hpp"
 #include "Shapes/Collection.hpp"
 #include "Utils.hpp"
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -15,7 +16,8 @@ class Renderer {
     Renderer(int width, int height,
              const Color &backgroundColor = Color(0, 0, 0, 1.0f));
 
-    void render(Pixels &pixels, const std::vector<Collection *> &collections,
+    void render(Pixels &pixels,
+                const std::vector<std::shared_ptr<Collection>> &collections,
                 const DrawOptions &options);
 
     void drawText(Pixels &pixels, const std::string &text, int x, int y,

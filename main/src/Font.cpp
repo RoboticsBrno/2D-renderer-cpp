@@ -1,4 +1,4 @@
-#include "Font.hpp"
+#include "Font/Font.hpp"
 
 // Font data with proper widths for each character
 const uint8_t Font::FONT_DATA[] = {

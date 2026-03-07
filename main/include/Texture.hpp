@@ -18,7 +18,6 @@ class Texture {
 
     static bool fromBMP(const std::string &filename, Texture &outTexture,
                         bool littleEndian = true);
-    static bool initFS();
 
     Color sample(int u, int v) const;
     void setWrapMode(const std::string &mode);

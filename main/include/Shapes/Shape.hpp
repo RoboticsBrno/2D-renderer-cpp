@@ -1,13 +1,19 @@
 #pragma once
 #include "../Collider.hpp"
 #include "../Texture.hpp"
-#include "../Utils.hpp"
+#include "Utils.hpp"
 #include <vector>
 
 struct DrawOptions {
     int screen_width;
     int screen_height;
     bool antialias;
+};
+
+struct Matrix2D {
+    float a = 1.0f, b = 0.0f; // X-Axis (Scale/Rotate)
+    float c = 0.0f, d = 1.0f; // Y-Axis (Skew/Rotate)
+    float e = 0.0f, f = 0.0f; // Translation (Position)
 };
 
 struct ShapeParams {
@@ -67,16 +73,21 @@ class Shape {
     Collider *collider;
 
     // Protected helper methods
-    std::pair<int, int> getTransformedPosition(int x, int y);
+    std::pair<int, int> getTransformedPosition(int inputX, int inputY);
     void bresenhamLine(Pixels &points, int x0, int y0, int x1, int y1);
     void wuLine(Pixels &points, int x0, int y0, int x1, int y1);
     void addPixel(Pixels &points, int x, int y, float alpha);
     void getInsidePoints(Pixels &points,
                          const std::vector<std::pair<int, int>> &vertices);
+    void getUVAt(int x, int y, float &outU, float &outV);
 
   public:
     Shape(const ShapeParams &params);
     virtual ~Shape();
+
+    Matrix2D getLocalMatrix();
+    Matrix2D getGlobalMatrix();
+    std::pair<int, int> transformPoint(int x, int y, const Matrix2D &m);
 
     // Pure virtual methods
     virtual void drawAntiAliased(Pixels &pixels) = 0;
@@ -102,7 +113,7 @@ class Shape {
     // Collider methods
     void addCollider(Collider *collider = nullptr);
     void removeCollider();
-    bool intersects(Shape *other);
+    bool intersects(const std::shared_ptr<Shape> &other);
 
     // Texture methods
     void setTexture(Texture *texture);
@@ -164,7 +175,12 @@ class Shape {
     void setColor(const Color &color) { this->color = color; }
     void setZ(int z);
 
-    void setRotationAngle(float angle) { this->rotation.angle = angle; }
+    void setRotationAngle(float angle) {
+        this->rotation.angle = angle;
+        if (this->collider)
+            this->collider->setRotation(angle);
+    }
+
     void setRotationX(int x) { this->rotation.x = x; }
     void setRotationY(int y) { this->rotation.y = y; }
 

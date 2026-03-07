@@ -19,8 +19,8 @@ struct RegularPolygonRadiusParams : public ShapeParams {
     bool fill;
 
     RegularPolygonRadiusParams(int x, int y, const Color &color, int sides,
-                               int radius, bool fill = true)
-        : ShapeParams(x, y, color, 0), sides(sides), radius(radius),
+                               int radius, bool fill = true, int z = 0)
+        : ShapeParams(x, y, color, z), sides(sides), radius(radius),
           fill(fill) {}
 };
 

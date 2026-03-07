@@ -1,4 +1,8 @@
-#include "Rectangle.hpp"
+#include "Shapes/Rectangle.hpp"
+#include "esp_timer.h"
+#include <algorithm>
+#include <cstdint>
+#include <sys/types.h>
 
 Rectangle::Rectangle(const RectangleParams &params)
     : Shape(params), width(params.width), height(params.height),
@@ -11,11 +15,12 @@ Collider *Rectangle::defaultCollider() {
 std::vector<std::pair<int, int>> Rectangle::getVertices() {
     std::vector<std::pair<int, int>> vertices;
 
-    vertices.push_back(getTransformedPosition(x, y));              // TL
-    vertices.push_back(getTransformedPosition(x, y + height - 1)); // BL
-    vertices.push_back(
-        getTransformedPosition(x + width - 1, y + height - 1));   // BR
-    vertices.push_back(getTransformedPosition(x + width - 1, y)); // TR
+    Matrix2D globalMat = getGlobalMatrix();
+
+    vertices.push_back(Shape::transformPoint(0, 0, globalMat));
+    vertices.push_back(Shape::transformPoint(0, height - 1, globalMat));
+    vertices.push_back(Shape::transformPoint(width - 1, height - 1, globalMat));
+    vertices.push_back(Shape::transformPoint(width - 1, 0, globalMat));
 
     return vertices;
 }
@@ -25,47 +30,53 @@ void Rectangle::getInsidePoints(
     if (vertices.size() < 4)
         return;
 
-    int minX = std::min({vertices[0].first, vertices[1].first,
-                         vertices[2].first, vertices[3].first});
-    int maxX = std::max({vertices[0].first, vertices[1].first,
-                         vertices[2].first, vertices[3].first});
-    int minY = std::min({vertices[0].second, vertices[1].second,
-                         vertices[2].second, vertices[3].second});
-    int maxY = std::max({vertices[0].second, vertices[1].second,
-                         vertices[2].second, vertices[3].second});
+    int minX = vertices[0].first, maxX = vertices[0].first;
+    int minY = vertices[0].second, maxY = vertices[0].second;
+    for (int i = 1; i < 4; i++) {
+        minX = std::min(minX, vertices[i].first);
+        maxX = std::max(maxX, vertices[i].first);
+        minY = std::min(minY, vertices[i].second);
+        maxY = std::max(maxY, vertices[i].second);
+    }
+
+    float u0, v0, uX, vX, uY, vY;
+    getUVAt(minX, minY, u0, v0);
+    getUVAt(minX + 1, minY, uX, vX);
+    getUVAt(minX, minY + 1, uY, vY);
+
+    float dux = uX - u0;
+    float dvx = vX - v0;
+    float duy = uY - u0;
+    float dvy = vY - v0;
 
     int v0x = vertices[0].first, v0y = vertices[0].second;
-    int v1x = vertices[1].first, v1y = vertices[1].second;
-    int v3x = vertices[3].first, v3y = vertices[3].second;
-
-    int side1x = v1x - v0x;
-    int side1y = v1y - v0y;
-
-    int side2x = v3x - v0x;
-    int side2y = v3y - v0y;
-
-    int dot11 = side1x * side1x + side1y * side1y;
-    int dot22 = side2x * side2x + side2y * side2y;
-    int dot12 = side1x * side2x + side1y * side2y;
-    float invDenom = 1.0f / (dot11 * dot22 - dot12 * dot12);
+    int dx1 = vertices[1].first - v0x, dy1 = vertices[1].second - v0y;
+    int dx2 = vertices[3].first - v0x, dy2 = vertices[3].second - v0y;
+    int lenSq1 = dx1 * dx1 + dy1 * dy1;
+    int lenSq2 = dx2 * dx2 + dy2 * dy2;
 
     for (int y = minY; y <= maxY; ++y) {
+        float rowU = u0 + (y - minY) * duy;
+        float rowV = v0 + (y - minY) * dvy;
+
         for (int x = minX; x <= maxX; ++x) {
-            int pointVecX = x - v0x;
-            int pointVecY = y - v0y;
+            int relX = x - v0x, relY = y - v0y;
+            int dot1 = relX * dx1 + relY * dy1;
+            int dot2 = relX * dx2 + relY * dy2;
 
-            float dot1p = pointVecX * side1x + pointVecY * side1y;
-            float dot2p = pointVecX * side2x + pointVecY * side2y;
-
-            float u = (dot22 * dot1p - dot12 * dot2p) * invDenom;
-            float v = (dot11 * dot2p - dot12 * dot1p) * invDenom;
-
-            if (u >= 0.0f && u <= 1.0f && v >= 0.0f && v <= 1.0f) {
-                points.push_back(Pixel(x, y, sampleTexture(x, y)));
+            if (dot1 >= 0 && dot1 <= lenSq1 && dot2 >= 0 && dot2 <= lenSq2) {
+                Color c = texture ? texture->sample((int)(rowU + 0.5f),
+                                                    (int)(rowV + 0.5f))
+                                  : color;
+                c.a *= color.a;
+                points.push_back(Pixel(x, y, c));
             }
+            rowU += dux;
+            rowV += dvx;
         }
     }
 }
+
 void Rectangle::drawAntiAliased(Pixels &pixels) {
     auto vertices = getVertices();
 

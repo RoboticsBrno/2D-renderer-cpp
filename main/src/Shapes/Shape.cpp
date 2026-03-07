@@ -1,21 +1,108 @@
-#include "Shape.hpp"
+#include "Shapes/Shape.hpp"
+#include "Shapes/Collection.hpp"
 #include <algorithm>
 #include <cmath>
+
+Matrix2D multiplyMatrices(const Matrix2D &m1, const Matrix2D &m2) {
+    Matrix2D out;
+    out.a = m1.a * m2.a + m1.c * m2.b;
+    out.b = m1.b * m2.a + m1.d * m2.b;
+    out.c = m1.a * m2.c + m1.c * m2.d;
+    out.d = m1.b * m2.c + m1.d * m2.d;
+    out.e = m1.a * m2.e + m1.c * m2.f + m1.e;
+    out.f = m1.b * m2.e + m1.d * m2.f + m1.f;
+    return out;
+}
+
+Matrix2D Shape::getLocalMatrix() {
+    float angleRad = rotation.angle * M_PI / 180.0f;
+    float c = std::cos(angleRad);
+    float s = std::sin(angleRad);
+
+    float px = static_cast<float>(rotation.x);
+    float py = static_cast<float>(rotation.y);
+
+    Matrix2D m;
+    m.a = c;
+    m.b = -s;
+    m.c = s;
+    m.d = c;
+
+    m.e = this->x + px * (1.0f - c) - py * s;
+    m.f = this->y + py * (1.0f - c) + px * s;
+
+    return m;
+}
+
+std::pair<int, int> Shape::transformPoint(int x, int y, const Matrix2D &m) {
+    float tx = x * m.a + y * m.c + m.e;
+    float ty = x * m.b + y * m.d + m.f;
+    return {static_cast<int>(std::round(tx)), static_cast<int>(std::round(ty))};
+}
+
+Matrix2D Shape::getGlobalMatrix() {
+    std::vector<Shape *> hierarchy;
+    Shape *current = this;
+    while (current != nullptr) {
+        hierarchy.push_back(current);
+        current = current->getParent();
+    }
+
+    Matrix2D globalMat = {1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f};
+    for (auto it = hierarchy.rbegin(); it != hierarchy.rend(); ++it) {
+        Matrix2D localMat = (*it)->getLocalMatrix();
+        globalMat = multiplyMatrices(globalMat, localMat);
+    }
+
+    return globalMat;
+}
+
+void Shape::getUVAt(int x, int y, float &outU, float &outV) {
+    float localPivotX = (float)rotation.x - this->x;
+    float localPivotY = (float)rotation.y - this->y;
+
+    auto screenPivot = getTransformedPosition(localPivotX, localPivotY);
+
+    float dx = (float)x - screenPivot.first;
+    float dy = (float)y - screenPivot.second;
+
+    float localX = dx;
+    float localY = dy;
+
+    if (fixTexture && rotation.angle != 0) {
+        updateTrigCache();
+        localX = dx * cosAngle - dy * sinAngle;
+        localY = dx * sinAngle + dy * cosAngle;
+    }
+
+    float finalU = localX + localPivotX;
+    float finalV = localY + localPivotY;
+
+    float u = finalU * uvTransform.invScaleX + uvTransform.offsetX;
+    float v = finalV * uvTransform.invScaleY + uvTransform.offsetY;
+
+    if (uvTransform.rotation != 0) {
+        updateTextureTrigCache();
+        float texTranslatedU = u - 0.5f;
+        float texTranslatedV = v - 0.5f;
+        u = texTranslatedU * texCos - texTranslatedV * texSin + 0.5f;
+        v = texTranslatedU * texSin + texTranslatedV * texCos + 0.5f;
+    }
+
+    outU = u;
+    outV = v;
+}
 
 // Constructor & Destructor
 Shape::Shape(const ShapeParams &params)
     : x(params.x), y(params.y), color(params.color), z(params.z),
       parent(nullptr), texture(nullptr), fixTexture(false), collider(nullptr) {
-    rotation = {params.x, params.y, 0.0f};
-    scale = {1.0f, 1.0f, params.x, params.y};
+    rotation = {0, 0, 0.0f};
+    scale = {1.0f, 1.0f, 0, 0};
     uvTransform = {1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f};
 }
 
-Shape::~Shape() {
-    if (collider) {
-        delete collider;
-    }
-}
+Shape::~Shape() {}
 
 // Cache management
 void Shape::updateTrigCache() {
@@ -52,8 +139,8 @@ void Shape::removeCollider() {
     }
 }
 
-bool Shape::intersects(Shape *other) {
-    if (this->collider && other->collider) {
+bool Shape::intersects(const std::shared_ptr<Shape> &other) {
+    if (this->collider && other && other->collider) {
         return this->collider->intersects(other->collider);
     }
     return false;
@@ -87,6 +174,9 @@ void Shape::translate(float dx, float dy) {
 void Shape::rotate(float angle) {
     rotation.angle = std::fmod(rotation.angle + angle, 360.0f);
     invalidateTrigCache();
+    if (this->collider) {
+        this->collider->rotate(angle);
+    }
 }
 
 void Shape::setPivot(int x, int y) {
@@ -149,41 +239,38 @@ Color Shape::sampleTexture(int x, int y) {
     if (!texture)
         return color;
 
-    int localX = x - this->x;
-    int localY = y - this->y;
+    float localPivotX = (float)rotation.x - this->x;
+    float localPivotY = (float)rotation.y - this->y;
+
+    auto screenPivot = getTransformedPosition(localPivotX, localPivotY);
+
+    float dx = (float)x - screenPivot.first;
+    float dy = (float)y - screenPivot.second;
+
+    float localX = dx;
+    float localY = dy;
 
     if (fixTexture && rotation.angle != 0) {
         updateTrigCache();
-
-        int rotationOriginX = rotation.x;
-        int rotationOriginY = rotation.y;
-        int originOffsetX = rotationOriginX - this->x;
-        int originOffsetY = rotationOriginY - this->y;
-
-        int translatedX = localX - originOffsetX;
-        int translatedY = localY - originOffsetY;
-        localX =
-            translatedX * cosAngle - translatedY * sinAngle + originOffsetX;
-        localY =
-            translatedX * sinAngle + translatedY * cosAngle + originOffsetY;
+        localX = dx * cosAngle - dy * sinAngle;
+        localY = dx * sinAngle + dy * cosAngle;
     }
-    int u =
-        static_cast<int>(localX * uvTransform.invScaleX + uvTransform.offsetX);
-    int v =
-        static_cast<int>(localY * uvTransform.invScaleY + uvTransform.offsetY);
+
+    int u = static_cast<int>((localX + localPivotX) * uvTransform.invScaleX +
+                             uvTransform.offsetX + 0.5f);
+    int v = static_cast<int>((localY + localPivotY) * uvTransform.invScaleY +
+                             uvTransform.offsetY + 0.5f);
+
     if (uvTransform.rotation != 0) {
         updateTextureTrigCache();
-
-        float texTranslatedU = u - 0.5f;
-        float texTranslatedV = v - 0.5f;
-
-        u = static_cast<int>(texTranslatedU * texCos - texTranslatedV * texSin +
-                             0.5f);
-        v = static_cast<int>(texTranslatedU * texSin + texTranslatedV * texCos +
-                             0.5f);
+        float tu = u - 0.5f;
+        float tv = v - 0.5f;
+        u = static_cast<int>(tu * texCos - tv * texSin + 0.5f);
+        v = static_cast<int>(tu * texSin + tv * texCos + 0.5f);
     }
+
     Color texColor = texture->sample(u, v);
-    texColor.a = texColor.a * color.a;
+    texColor.a *= color.a;
     return texColor;
 }
 
@@ -191,39 +278,10 @@ Color Shape::sampleTexture(int x, int y) {
 void Shape::setParent(Shape *parent) { this->parent = parent; }
 
 // Transformation and coordinate methods
-std::pair<int, int> Shape::getTransformedPosition(int x, int y) {
-    int currentX = x;
-    int currentY = y;
+std::pair<int, int> Shape::getTransformedPosition(int inputX, int inputY) {
+    Matrix2D globalMat = getGlobalMatrix();
 
-    int scaleOriginX = scale.originX;
-    int scaleOriginY = scale.originY;
-
-    currentX = (currentX - scaleOriginX) * scale.x + scaleOriginX;
-    currentY = (currentY - scaleOriginY) * scale.y + scaleOriginY;
-
-    if (rotation.angle != 0) {
-        updateTrigCache();
-
-        int rotationOriginX = rotation.x;
-        int rotationOriginY = rotation.y;
-
-        int translatedX = currentX - rotationOriginX;
-        int translatedY = currentY - rotationOriginY;
-
-        currentX =
-            translatedX * cosAngle + translatedY * sinAngle + rotationOriginX;
-        currentY =
-            -translatedX * sinAngle + translatedY * cosAngle + rotationOriginY;
-    }
-
-    if (parent) {
-        auto parentTransformed =
-            parent->getTransformedPosition(currentX, currentY);
-        currentX = parentTransformed.first;
-        currentY = parentTransformed.second;
-    }
-
-    return {std::round(currentX), std::round(currentY)};
+    return transformPoint(inputX, inputY, globalMat);
 }
 
 // Drawing methods
@@ -238,8 +296,6 @@ void Shape::bresenhamLine(Pixels &points, int x0, int y0, int x1, int y1) {
     int sx = (x0 < x1) ? 1 : -1;
     int sy = (y0 < y1) ? 1 : -1;
     int err = dx - dy;
-
-    points.reserve(points.size() + dx + dy + 1);
 
     int x = x0;
     int y = y0;
@@ -353,25 +409,23 @@ void Shape::wuLine(Pixels &points, int x0_int, int y0_int, int x1_int,
 
 // Pixel manipulation
 void Shape::addPixel(Pixels &points, int x, int y, float alpha) {
-    if (alpha < 0.01f)
+    if (alpha <= 0.005f)
         return;
 
-    if (x < 0 || y < 0)
-        return;
-
-    float finalAlpha = std::max(0.0f, std::min(1.0f, alpha));
-
+    float finalAlpha = alpha * color.a;
     Color pixelColor;
 
     if (!texture) {
-        pixelColor = Color(color.r, color.g, color.b, finalAlpha * color.a);
+        pixelColor = Color(color.r, color.g, color.b, finalAlpha);
     } else {
         Color texColor = sampleTexture(x, y);
         pixelColor =
             Color(texColor.r, texColor.g, texColor.b, finalAlpha * texColor.a);
     }
 
-    points.push_back(Pixel(x, y, pixelColor));
+    if (pixelColor.a > 0.005f) {
+        points.push_back(Pixel(x, y, pixelColor));
+    }
 }
 
 // Fill algorithms

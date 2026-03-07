@@ -1,7 +1,12 @@
 #pragma once
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <vector>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 class CircleCollider;
 class RectangleCollider;
@@ -42,16 +47,14 @@ class Collider : public Collidable {
   public:
     float x;
     float y;
+    float rotation;
 
-    Collider(int x, int y) : x(x), y(y) {}
+    Collider(float x, float y) : x(x), y(y), rotation(0.0f) {}
     virtual ~Collider() = default;
 
     virtual bool intersects(const Collider *other) const = 0;
+
     virtual void translate(float dx, float dy) {
-        x += dx;
-        y += dy;
-    }
-    virtual void translate(int dx, int dy) {
         x += dx;
         y += dy;
     }
@@ -61,18 +64,41 @@ class Collider : public Collidable {
         y = newY;
     }
 
+    virtual void rotate(float angleDegrees) { rotation += angleDegrees; }
+
     void setX(int newX) { x = newX; }
     void setY(int newY) { y = newY; }
+    void setRotation(float angleDegrees) { rotation = angleDegrees; }
 
     int getX() const { return x; }
     int getY() const { return y; }
+    float getRotation() const { return rotation; }
 };
 
 namespace CollisionMath {
+constexpr float DEG_TO_RAD = M_PI / 180.0f;
+
 inline int distanceSquared(int x1, int y1, int x2, int y2) {
     int dx = x1 - x2;
     int dy = y1 - y2;
     return dx * dx + dy * dy;
+}
+
+// Rotates point (px, py) around (ox, oy) by 'angleRad' (RADIANS)
+inline std::pair<int, int> rotatePoint(int px, int py, int ox, int oy,
+                                       float angleRad) {
+    if (angleRad == 0.0f)
+        return {px, py};
+    float s = std::sin(angleRad);
+    float c = std::cos(angleRad);
+
+    float tx = px - ox;
+    float ty = py - oy;
+
+    float rx = tx * c + ty * s;
+    float ry = -tx * s + ty * c;
+
+    return {static_cast<int>(rx + ox), static_cast<int>(ry + oy)};
 }
 
 inline bool pointInPolygon(int x, int y,
@@ -95,12 +121,13 @@ inline bool pointInPolygon(int x, int y,
 inline bool lineIntersectLine(int x1, int y1, int x2, int y2, int x3, int y3,
                               int x4, int y4) {
     int denominator = ((y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1));
-
     if (denominator == 0)
         return false;
 
-    float ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / denominator;
-    float ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / denominator;
+    float ua =
+        ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / (float)denominator;
+    float ub =
+        ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / (float)denominator;
 
     return ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1;
 }
@@ -122,6 +149,9 @@ class IntersectionVisitor : public CollisionVisitor {
     visitRegularPolygon(const RegularPolygonCollider *regularPolygon) override;
 
   private:
+    bool checkPolygonVsPolygon(const std::vector<std::pair<int, int>> &p1,
+                               const std::vector<std::pair<int, int>> &p2);
+
     bool circleCircle(const CircleCollider *c1, const CircleCollider *c2);
     bool circleRectangle(const CircleCollider *circle,
                          const RectangleCollider *rect);
@@ -165,18 +195,12 @@ class IntersectionVisitor : public CollisionVisitor {
 class CircleCollider : public Collider {
   public:
     int radius;
-
     CircleCollider(int x, int y, int radius) : Collider(x, y), radius(radius) {}
-
-    int getRadius() const { return radius; }
-    void setRadius(int radius) { this->radius = radius; }
 
     bool accept(CollisionVisitor *visitor) const override {
         return visitor->visitCircle(this);
     }
-
     ColliderType getType() const override { return ColliderType::CIRCLE; }
-
     bool intersects(const Collider *other) const override {
         IntersectionVisitor visitor(other);
         return this->accept(&visitor);
@@ -191,20 +215,28 @@ class RectangleCollider : public Collider {
     RectangleCollider(int x, int y, int width, int height)
         : Collider(x, y), width(width), height(height) {}
 
-    int getWidth() const { return width; }
-    int getHeight() const { return height; }
-    void setWidth(int width) { this->width = width; }
-    void setHeight(int height) { this->height = height; }
-
     bool accept(CollisionVisitor *visitor) const override {
         return visitor->visitRectangle(this);
     }
-
     ColliderType getType() const override { return ColliderType::RECTANGLE; }
-
     bool intersects(const Collider *other) const override {
         IntersectionVisitor visitor(other);
         return this->accept(&visitor);
+    }
+
+    std::vector<std::pair<int, int>> getCorners() const {
+        std::vector<std::pair<int, int>> corners;
+        float rads = rotation * CollisionMath::DEG_TO_RAD;
+
+        corners.push_back({(int)x, (int)y});
+
+        corners.push_back(CollisionMath::rotatePoint(x + width, y, x, y, rads));
+        corners.push_back(
+            CollisionMath::rotatePoint(x + width, y + height, x, y, rads));
+        corners.push_back(
+            CollisionMath::rotatePoint(x, y + height, x, y, rads));
+
+        return corners;
     }
 };
 
@@ -216,14 +248,10 @@ class PolygonCollider : public Collider {
                     const std::vector<std::pair<int, int>> &points)
         : Collider(x, y), points(points) {}
 
-    const std::vector<std::pair<int, int>> &getPoints() const { return points; }
-
     bool accept(CollisionVisitor *visitor) const override {
         return visitor->visitPolygon(this);
     }
-
     ColliderType getType() const override { return ColliderType::POLYGON; }
-
     bool intersects(const Collider *other) const override {
         IntersectionVisitor visitor(other);
         return this->accept(&visitor);
@@ -231,8 +259,14 @@ class PolygonCollider : public Collider {
 
     std::vector<std::pair<int, int>> getWorldPoints() const {
         std::vector<std::pair<int, int>> worldPoints;
+        float rads = rotation * CollisionMath::DEG_TO_RAD;
+        float c = std::cos(rads);
+        float s = std::sin(rads);
+
         for (const auto &p : points) {
-            worldPoints.push_back({p.first + x, p.second + y});
+            int rx = static_cast<int>(p.first * c + p.second * s);
+            int ry = static_cast<int>(-p.first * s + p.second * c);
+            worldPoints.push_back({rx + (int)x, ry + (int)y});
         }
         return worldPoints;
     }
@@ -246,20 +280,19 @@ class LineSegmentCollider : public Collider {
     LineSegmentCollider(int x1, int y1, int x2, int y2)
         : Collider(x1, y1), x2(x2), y2(y2) {}
 
-    int getX2() const { return x2; }
-    int getY2() const { return y2; }
-    void setX2(int x2) { this->x2 = x2; }
-    void setY2(int y2) { this->y2 = y2; }
-
     bool accept(CollisionVisitor *visitor) const override {
         return visitor->visitLine(this);
     }
-
     ColliderType getType() const override { return ColliderType::LINE; }
-
     bool intersects(const Collider *other) const override {
         IntersectionVisitor visitor(other);
         return this->accept(&visitor);
+    }
+    std::pair<int, int> getP2() const {
+        if (rotation == 0.0f)
+            return {x2, y2};
+        float rads = rotation * CollisionMath::DEG_TO_RAD;
+        return CollisionMath::rotatePoint(x2, y2, x, y, rads);
     }
 };
 
@@ -270,9 +303,7 @@ class PointCollider : public Collider {
     bool accept(CollisionVisitor *visitor) const override {
         return visitor->visitPoint(this);
     }
-
     ColliderType getType() const override { return ColliderType::POINT; }
-
     bool intersects(const Collider *other) const override {
         IntersectionVisitor visitor(other);
         return this->accept(&visitor);
@@ -289,29 +320,18 @@ class RegularPolygonCollider : public Collider {
 
     int getSides() const { return sides; }
     int getRadius() const { return radius; }
-    void setSides(int sides) { this->sides = sides; }
-    void setRadius(int radius) { this->radius = radius; }
+
+    // Returns degrees directly
+    float getRotation() const { return rotation; }
 
     bool accept(CollisionVisitor *visitor) const override {
         return visitor->visitRegularPolygon(this);
     }
-
     ColliderType getType() const override {
         return ColliderType::REGULAR_POLYGON;
     }
-
     bool intersects(const Collider *other) const override {
         IntersectionVisitor visitor(other);
         return this->accept(&visitor);
-    }
-
-    std::vector<std::pair<int, int>> generateRegularPolygonPoints() const {
-        std::vector<std::pair<int, int>> points;
-        for (int i = 0; i < sides; i++) {
-            float angle = (i * 2 * M_PI / sides) - M_PI / 2;
-            points.push_back({(int)std::round(std::cos(angle) * radius),
-                              (int)std::round(std::sin(angle) * radius)});
-        }
-        return points;
     }
 };

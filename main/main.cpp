@@ -1,3 +1,4 @@
+#include "Utils.hpp"
 #include "examples/CollisionTest.hpp"
 #include "examples/Fire.hpp"
 #include "examples/LittlefsTest.hpp"

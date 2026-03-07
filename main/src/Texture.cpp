@@ -1,40 +1,14 @@
 #include "Texture.hpp"
-#include "esp_littlefs.h"
 #include "esp_log.h"
 #include <algorithm>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <vector>
+
+namespace fs = std::filesystem;
 
 static const char *TAG = "Texture";
-
-bool Texture::initFS() {
-
-    esp_vfs_littlefs_conf_t conf = {.base_path = "/lfs",
-                                    .partition_label = "lfs",
-                                    .partition = NULL,
-                                    .format_if_mount_failed = false,
-                                    .read_only = false,
-                                    .dont_mount = false,
-                                    .grow_on_mount = false};
-
-    esp_err_t ret = esp_vfs_littlefs_register(&conf);
-
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to mount or format filesystem");
-        return false;
-    }
-
-    size_t total = 0, used = 0;
-    ret = esp_littlefs_info(conf.partition_label, &total, &used);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to get filesystem info");
-        return false;
-    }
-
-    ESP_LOGI(TAG, "LittleFS mounted: total: %zu bytes, used: %zu bytes", total,
-             used);
-
-    return true;
-}
 
 Texture::Texture(const std::vector<std::vector<Color>> &pixels)
     : pixels(pixels), wrapMode("repeat"), valid(true) {
@@ -46,38 +20,44 @@ Texture::Texture() : width(0), height(0), wrapMode("repeat"), valid(false) {}
 
 bool Texture::readFile(const std::string &filename,
                        std::vector<uint8_t> &buffer) {
-    std::string fullPath = "/lfs/" + filename;
+    fs::path filepath(filename);
 
-    FILE *file = fopen(fullPath.c_str(), "rb");
-    if (!file) {
-        ESP_LOGE(TAG, "Failed to open file: %s", fullPath.c_str());
+    std::error_code ec;
+    if (!fs::exists(filepath, ec)) {
+        ESP_LOGE(TAG, "File not found: %s", filename.c_str());
         return false;
     }
 
-    fseek(file, 0, SEEK_END);
-    long fileSize = ftell(file);
-    fseek(file, 0, SEEK_SET);
+    std::ifstream file(filepath, std::ios::binary);
+    if (!file.is_open()) {
+        ESP_LOGE(TAG, "Failed to open file stream: %s", filename.c_str());
+        return false;
+    }
 
-    if (fileSize <= 0) {
-        ESP_LOGE(TAG, "Invalid file size: %ld", fileSize);
-        fclose(file);
+    auto fileSize = fs::file_size(filepath, ec);
+    if (ec) {
+        ESP_LOGE(TAG, "Failed to get file size: %s", filename.c_str());
+        return false;
+    }
+
+    if (fileSize == 0) {
+        ESP_LOGE(TAG, "File is empty: %s", filename.c_str());
         return false;
     }
 
     buffer.resize(fileSize);
-    size_t bytesRead = fread(buffer.data(), 1, fileSize, file);
-    fclose(file);
+    file.read(reinterpret_cast<char *>(buffer.data()), fileSize);
 
-    if (bytesRead != static_cast<size_t>(fileSize)) {
-        ESP_LOGE(TAG, "Failed to read file: read %zu of %ld bytes", bytesRead,
-                 fileSize);
+    if (file.fail()) {
+        ESP_LOGE(TAG, "Error reading data from file: %s", filename.c_str());
         return false;
     }
 
     ESP_LOGI(TAG, "Successfully read %s, size: %zu bytes", filename.c_str(),
-             bytesRead);
+             (size_t)fileSize);
     return true;
 }
+
 uint16_t Texture::getUint16(const uint8_t *data, size_t offset,
                             bool littleEndian) {
     if (littleEndian) {
@@ -106,7 +86,6 @@ int32_t Texture::getInt32(const uint8_t *data, size_t offset,
 bool Texture::fromBMP(const std::string &filename, Texture &outTexture,
                       bool littleEndian) {
     std::vector<uint8_t> fileData;
-
     if (!readFile(filename, fileData)) {
         ESP_LOGE(TAG, "Failed to read BMP file: %s", filename.c_str());
         return false;
@@ -114,9 +93,14 @@ bool Texture::fromBMP(const std::string &filename, Texture &outTexture,
 
     const uint8_t *data = fileData.data();
 
+    if (fileData.size() < 54) {
+        ESP_LOGE(TAG, "File too small to be a BMP");
+        return false;
+    }
+
     uint16_t signature = getUint16(data, 0, littleEndian);
-    if (signature != 0x4D42) {
-        ESP_LOGE(TAG, "Invalid BMP file signature: 0x%04X", signature);
+    if (signature != 0x4D42) { // 'BM'
+        ESP_LOGE(TAG, "Invalid BMP file signature: 0x%d", signature);
         return false;
     }
 
@@ -126,17 +110,8 @@ bool Texture::fromBMP(const std::string &filename, Texture &outTexture,
     int32_t height = getInt32(data, 22, littleEndian);
     uint16_t bitsPerPixel = getUint16(data, 28, littleEndian);
 
-    ESP_LOGI(TAG,
-             "BMP info: %dx%d, %d bpp, header: %d bytes, data offset: 0x%X",
-             width, height, bitsPerPixel, headerSize, pixelDataOffset);
-
-    if (headerSize != 40 && headerSize != 124 && headerSize != 108 &&
-        headerSize != 56) {
-        ESP_LOGW(TAG, "Unusual BMP header size: %d bytes", headerSize);
-    }
-
     if (width <= 0 || height <= 0) {
-        ESP_LOGE(TAG, "Invalid BMP dimensions: %dx%d", width, height);
+        ESP_LOGE(TAG, "Invalid BMP dimensions: %dx%d", (int)width, (int)height);
         return false;
     }
 
@@ -148,9 +123,7 @@ bool Texture::fromBMP(const std::string &filename, Texture &outTexture,
     std::vector<std::vector<Color>> pixels;
 
     if (bitsPerPixel == 24) {
-        // 24-bit BMP (RGB)
-        int bytesPerRow =
-            ((width * 3 + 3) / 4) * 4; // Row size is padded to multiple of 4
+        int bytesPerRow = ((width * 3 + 3) / 4) * 4;
 
         pixels.resize(height);
         for (int y = 0; y < height; y++) {
@@ -158,9 +131,9 @@ bool Texture::fromBMP(const std::string &filename, Texture &outTexture,
             for (int x = 0; x < width; x++) {
                 size_t offset =
                     pixelDataOffset + (height - 1 - y) * bytesPerRow + x * 3;
+
                 if (offset + 2 >= fileData.size()) {
-                    ESP_LOGE(TAG, "BMP data out of bounds at offset %zu",
-                             offset);
+                    ESP_LOGE(TAG, "BMP data out of bounds");
                     return false;
                 }
 
@@ -171,16 +144,15 @@ bool Texture::fromBMP(const std::string &filename, Texture &outTexture,
             }
         }
     } else if (bitsPerPixel == 32) {
-        // 32-bit BMP (RGBA)
         pixels.resize(height);
         for (int y = 0; y < height; y++) {
             pixels[y].resize(width);
             for (int x = 0; x < width; x++) {
                 size_t offset =
                     pixelDataOffset + (height - 1 - y) * width * 4 + x * 4;
+
                 if (offset + 3 >= fileData.size()) {
-                    ESP_LOGE(TAG, "BMP data out of bounds at offset %zu",
-                             offset);
+                    ESP_LOGE(TAG, "BMP data out of bounds");
                     return false;
                 }
 
@@ -198,15 +170,14 @@ bool Texture::fromBMP(const std::string &filename, Texture &outTexture,
     }
 
     outTexture = Texture(pixels);
-    ESP_LOGI(TAG, "Successfully loaded BMP texture: %dx%d, %d bpp", width,
-             height, bitsPerPixel);
+    ESP_LOGI(TAG, "Texture loaded successfully");
     return true;
 }
+
 Color Texture::sample(int u, int v) const {
     if (!valid || pixels.empty() || width == 0 || height == 0) {
         return Color(0, 0, 0, 1.0f);
     }
-
     int x = u;
     int y = v;
 
@@ -229,7 +200,6 @@ Color Texture::sample(int u, int v) const {
     if (y >= 0 && y < height && x >= 0 && x < width) {
         return pixels[y][x];
     }
-
     return Color(0, 0, 0, 1.0f);
 }
 

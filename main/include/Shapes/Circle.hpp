@@ -25,6 +25,11 @@ class Circle : public Shape {
   private:
     std::vector<std::pair<int, int>> getPointsToDraw(int cx, int cy, int x,
                                                      int y);
+    // Helpers
+    void drawHorizontalLine(Pixels &pixels, int x1, int x2, int y);
+    void drawOctantPointsAA(Pixels &pixels, int cx, int cy, int x, int y,
+                            float alpha);
+
     void drawCirclePoints(Pixels &points, int cx, int cy, int x, int y);
     void drawAntiAliasedPoint(Pixels &points, int cx, int cy, int x, int y,
                               float intensity);

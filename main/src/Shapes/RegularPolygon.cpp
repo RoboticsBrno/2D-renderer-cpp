@@ -1,4 +1,5 @@
-#include "RegularPolygon.hpp"
+#include "Shapes/RegularPolygon.hpp"
+#include <algorithm>
 #include <cmath>
 
 RegularPolygon::RegularPolygon(const RegularPolygonSideParams &params)
@@ -27,74 +28,46 @@ void RegularPolygon::setRadius(int radius) {
 int RegularPolygon::calculateRadiusFromSideLength(int sideLength) {
     return sideLength / (2 * std::sin(M_PI / sides));
 }
+
 void RegularPolygon::getInsidePoints(
     Pixels &points, const std::vector<std::pair<int, int>> &vertices) {
     if (vertices.size() < 3)
         return;
 
-    int minX = vertices[0].first;
-    int maxX = vertices[0].first;
-    int minY = vertices[0].second;
-    int maxY = vertices[0].second;
-
-    for (size_t i = 1; i < vertices.size(); ++i) {
-        const auto &v = vertices[i];
-        if (v.first < minX)
-            minX = v.first;
-        if (v.first > maxX)
-            maxX = v.first;
+    int minY = vertices[0].second, maxY = vertices[0].second;
+    for (const auto &v : vertices) {
         if (v.second < minY)
             minY = v.second;
         if (v.second > maxY)
             maxY = v.second;
     }
 
-    points.reserve(points.size() + (maxX - minX + 1) * (maxY - minY + 1) / 2);
-
-    struct Edge {
-        int x1, y1, x2, y2;
-        float slope;
-        bool operator<(const Edge &other) const { return y1 < other.y1; }
-    };
-
-    std::vector<Edge> edges;
-    edges.reserve(vertices.size());
-
-    size_t n = vertices.size();
-    for (size_t i = 0; i < n; i++) {
-        size_t j = (i + 1) % n;
-        int x1 = vertices[i].first, y1 = vertices[i].second;
-        int x2 = vertices[j].first, y2 = vertices[j].second;
-
-        if (y1 != y2) {
-            edges.push_back(
-                {x1, y1, x2, y2, static_cast<float>(x2 - x1) / (y2 - y1)});
-        }
-    }
-
     for (int y = minY; y <= maxY; y++) {
-        std::vector<int> intersections;
-        intersections.reserve(edges.size());
+        std::vector<int> nodes;
+        size_t n = vertices.size();
 
-        for (const auto &edge : edges) {
-            if ((y >= edge.y1 && y < edge.y2) ||
-                (y >= edge.y2 && y < edge.y1)) {
-                float x = edge.x1 + edge.slope * (y - edge.y1);
-                intersections.push_back(static_cast<int>(std::round(x)));
+        for (size_t i = 0; i < n; i++) {
+            size_t j = (i + 1) % n;
+            int xi = vertices[i].first, yi = vertices[i].second;
+            int xj = vertices[j].first, yj = vertices[j].second;
+
+            if ((yi < y && yj >= y) || (yj < y && yi >= y)) {
+                int x = xi + (int)((float)(y - yi) * (xj - xi) / (yj - yi));
+                nodes.push_back(x);
             }
         }
 
-        std::sort(intersections.begin(), intersections.end());
+        std::sort(nodes.begin(), nodes.end());
 
-        for (size_t i = 0; i < intersections.size(); i += 2) {
-            if (i + 1 < intersections.size()) {
-                int startX = std::max(minX, intersections[i]);
-                int endX = std::min(maxX, intersections[i + 1]);
+        for (size_t k = 0; k < nodes.size(); k += 2) {
+            if (k + 1 >= nodes.size())
+                break;
 
-                for (int x = startX; x <= endX; x++) {
-                    Color sampledColor = sampleTexture(x, y);
-                    points.push_back(Pixel(x, y, sampledColor));
-                }
+            int startX = nodes[k];
+            int endX = nodes[k + 1];
+
+            for (int x = startX; x <= endX; x++) {
+                points.push_back(Pixel(x, y, sampleTexture(x, y)));
             }
         }
     }
@@ -114,12 +87,17 @@ std::vector<std::pair<int, int>> RegularPolygon::getVertices() {
     }
 
     std::vector<std::pair<int, int>> vertices;
+
+    Matrix2D globalMat = getGlobalMatrix();
+
     for (int i = 0; i < sides; i++) {
         float angle = 2 * M_PI / sides * i - M_PI / 2;
-        float vx = x + effectiveRadius * std::cos(angle);
-        float vy = y + effectiveRadius * std::sin(angle);
-        auto rotated = getTransformedPosition(vx, vy);
-        vertices.push_back(rotated);
+
+        float vx = effectiveRadius * std::cos(angle);
+        float vy = effectiveRadius * std::sin(angle);
+
+        vertices.push_back(Shape::transformPoint(
+            static_cast<int>(vx), static_cast<int>(vy), globalMat));
     }
     return vertices;
 }

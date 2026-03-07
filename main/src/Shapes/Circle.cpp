@@ -1,5 +1,5 @@
-#include "Circle.hpp"
-#include "../Utils.hpp"
+#include "Shapes/Circle.hpp"
+#include "Utils.hpp"
 #include <cmath>
 
 Circle::Circle(const CircleParams &params)
@@ -44,44 +44,22 @@ void Circle::drawAntiAliasedPoint(Pixels &points, int cx, int cy, int x, int y,
     }
 }
 
-void Circle::fillCircle(Pixels &points, int cx, int cy, int r) {
-    points.reserve(points.size() + 3.14159f * r * r);
-    int x = 0;
-    int y = r;
-    int d = 3 - 2 * r;
+void Circle::fillCircle(Pixels &pixels, int cx, int cy, int r) {
 
-    auto drawline = [&](int x1, int y1, int x2, int y2) {
-        for (int i = x1; i <= x2; i++) {
-            Color sampledColor = sampleTexture(i, y1);
-            sampledColor.a = 1.0f;
-            points.push_back(Pixel(i, y1, sampledColor));
-        }
-    };
+    for (int y = -r; y <= r; y++) {
+        int xLen = static_cast<int>(std::sqrt(r * r - y * y));
 
-    while (y >= x) {
-        drawline(cx - x, cy + y, cx + x, cy + y);
-        if (y != 0) {
-            drawline(cx - x, cy - y, cx + x, cy - y);
-        }
-        if (x != y) {
-            drawline(cx - y, cy + x, cx + y, cy + x);
-            if (x != 0) {
-                drawline(cx - y, cy - x, cx + y, cy - x);
-            }
-        }
+        int startX = cx - xLen;
+        int endX = cx + xLen;
+        int screenY = cy + y;
 
-        x++;
-        if (d > 0) {
-            y--;
-            d = d + 4 * (x - y) + 10;
-        } else {
-            d = d + 4 * x + 6;
+        for (int x = startX; x <= endX; x++) {
+            pixels.push_back(Pixel(x, screenY, sampleTexture(x, screenY)));
         }
     }
 }
 
 void Circle::fillCircleAntiAliased(Pixels &points, int cx, int cy, int r) {
-    points.reserve(points.size() + 3.14159f * r * r);
     int x = 0;
     int y = r;
     int d = 3 - 2 * r;
@@ -121,32 +99,40 @@ void Circle::fillCircleAntiAliased(Pixels &points, int cx, int cy, int r) {
 }
 
 void Circle::drawAliased(Pixels &pixels) {
-    auto center = getTransformedPosition(x, y);
+    auto center = getTransformedPosition(0, 0);
     int r = radius;
+    int x = 0;
+    int y = r;
+    int d = 3 - 2 * r;
 
-    int xPos = 0;
-    int yPos = r;
-    int d = 1 - r;
-
-    while (xPos <= yPos) {
-        drawCirclePoints(pixels, center.first, center.second, xPos, yPos);
+    while (y >= x) {
+        drawHorizontalLine(pixels, center.first - x, center.first + x,
+                           center.second + y);
+        drawHorizontalLine(pixels, center.first - x, center.first + x,
+                           center.second - y);
+        drawHorizontalLine(pixels, center.first - y, center.first + y,
+                           center.second + x);
+        drawHorizontalLine(pixels, center.first - y, center.first + y,
+                           center.second - x);
 
         if (d < 0) {
-            d = d + 2 * xPos + 3;
+            d = d + 4 * x + 6;
         } else {
-            d = d + 2 * (xPos - yPos) + 5;
-            yPos--;
+            d = d + 4 * (x - y) + 10;
+            y--;
         }
-        xPos++;
-    }
-
-    if (fill) {
-        fillCircle(pixels, center.first, center.second, r);
+        x++;
     }
 }
 
+// Helper for the inner loop
+void Circle::drawHorizontalLine(Pixels &pixels, int x1, int x2, int y) {
+    for (int x = x1; x <= x2; x++) {
+        pixels.push_back(Pixel(x, y, sampleTexture(x, y)));
+    }
+}
 void Circle::drawAntiAliased(Pixels &pixels) {
-    auto center = getTransformedPosition(x, y);
+    auto center = getTransformedPosition(0, 0);
     int r = radius;
 
     // Xiaolin Wu's circle algorithm for anti-aliased rendering

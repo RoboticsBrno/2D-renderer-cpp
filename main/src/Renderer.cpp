@@ -1,18 +1,21 @@
 #include "Renderer.hpp"
+#include "Collection.hpp"
+#include <algorithm>
+#include <memory>
 
 Renderer::Renderer(int width, int height, const Color &backgroundColor)
     : width(width), height(height), backgroundColor(backgroundColor) {}
 
-void Renderer::render(Pixels &pixels,
-                      const std::vector<Collection *> &collections,
-                      const DrawOptions &options) {
-    pixels.reserve(10000);
-    std::vector<Collection *> sortedCollections = collections;
-    std::sort(
-        sortedCollections.begin(), sortedCollections.end(),
-        [](Collection *a, Collection *b) { return a->getZ() < b->getZ(); });
+void Renderer::render(
+    Pixels &pixels, const std::vector<std::shared_ptr<Collection>> &collections,
+    const DrawOptions &options) {
+    std::vector<std::shared_ptr<Collection>> sortedCollections = collections;
+    std::sort(sortedCollections.begin(), sortedCollections.end(),
+              [](std::shared_ptr<Collection> a, std::shared_ptr<Collection> b) {
+                  return a->getZ() < b->getZ();
+              });
 
-    for (Collection *collection : sortedCollections) {
+    for (std::shared_ptr<Collection> collection : sortedCollections) {
         collection->draw(pixels, options);
     }
 }

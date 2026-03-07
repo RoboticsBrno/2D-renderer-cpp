@@ -18,47 +18,43 @@ void runSolarSystem() {
     const int height = 64;
     Renderer renderer(width, height, Color(0, 0, 0, 1.0f));
 
-    std::vector<Collection *> collections;
+    std::vector<std::shared_ptr<Collection>> collections;
 
-    Collection *sunCollection =
-        new Collection(ShapeParams{32, 32, Color(0, 0, 0, 1.0f), 0});
+    auto sunCollection = std::make_shared<Collection>(
+        ShapeParams{0, 0, Color(0, 0, 0, 1.0f), 0});
     sunCollection->setPivot(32.0f, 32.0f);
     collections.push_back(sunCollection);
 
-    Circle *sun =
-        new Circle(CircleParams{32, 32, Color(255, 204, 0, 1.0f), 8, true});
+    auto sun = std::make_shared<Circle>(
+        CircleParams{32, 32, Color(255, 204, 0, 1.0f), 8, true});
     sunCollection->addShape(sun);
 
-    std::vector<std::pair<int, int>> polygonVertices = {
-        {60, 60}, {63, 61}, {61, 63}};
-    Polygon *polygon = new Polygon(
-        PolygonParams{32, 32, Color(255, 150, 0, 1.0f), polygonVertices, true});
-    sunCollection->addShape(polygon);
-
-    Collection *earthCollection =
-        new Collection(ShapeParams{32, 32, Color(0, 0, 0, 1.0f), 1});
+    auto earthCollection = std::make_shared<Collection>(
+        ShapeParams{0, 0, Color(0, 0, 0, 1.0f), 1});
     earthCollection->setPivot(32.0f, 32.0f);
 
-    Circle *earth = new Circle(
+    auto earth = std::make_shared<Circle>(
         CircleParams{32 + 20, 32, Color(0, 100, 255, 1.0f), 4, true});
     earthCollection->addShape(earth);
 
-    Circle *alien = new Circle(
+    auto alien = std::make_shared<Circle>(
         CircleParams{32 - 20, 32, Color(0, 255, 100, 1.0f), 4, true});
     earthCollection->addShape(alien);
 
-    Collection *moonCollection =
-        new Collection(ShapeParams{32 + 20, 32, Color(0, 0, 0, 1.0f), 1});
-    Circle *moon = new Circle(
+    auto moonCollection = std::make_shared<Collection>(
+        ShapeParams{0, 0, Color(0, 0, 0, 1.0f), 1});
+    moonCollection->setPivot(52.0f, 32.0f);
+
+    auto moon = std::make_shared<Circle>(
         CircleParams{32 + 20 + 8, 32, Color(200, 200, 200, 1.0f), 2, true});
     moonCollection->addShape(moon);
 
     earthCollection->addShape(moonCollection);
     sunCollection->addShape(earthCollection);
 
-    Circle *earthOrbit =
-        new Circle(CircleParams{32, 32, Color(100, 100, 100, 0.3f), 20, false});
-    Circle *moonOrbit = new Circle(
+    auto earthOrbit = std::make_shared<Circle>(
+        CircleParams{32, 32, Color(100, 100, 100, 0.3f), 20, false});
+    auto moonOrbit = std::make_shared<Circle>(
         CircleParams{32 + 20, 32, Color(100, 100, 100, 0.3f), 8, false});
     sunCollection->addShape(earthOrbit);
     earthCollection->addShape(moonOrbit);
@@ -120,9 +116,5 @@ void runSolarSystem() {
             sumTime = 0;
             renderTime = 0;
         }
-    }
-    // Cleanup
-    for (auto collection : collections) {
-        delete collection;
     }
 }

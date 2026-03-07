@@ -1,4 +1,4 @@
-#include "Point.hpp"
+#include "Shapes/Point.hpp"
 
 Point::Point(const ShapeParams &params) : Shape(params) {}
 

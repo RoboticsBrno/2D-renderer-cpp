@@ -10,6 +10,7 @@
 #include "freertos/projdefs.h"
 #include "freertos/task.h"
 #include <cstdint>
+#include <memory>
 #include <vector>
 
 void init_input_gpio(int gpio_num) {
@@ -45,20 +46,21 @@ void runPlatformer() {
         return;
     }
 
-    Collection *mainCollection =
-        new Collection(ShapeParams{0, 0, Color(0, 0, 0, 0), 0});
+    auto mainCollection =
+        std::make_shared<Collection>(ShapeParams{0, 0, Color(0, 0, 0, 0), 0});
 
     // --- Player Setup ---
-    Rectangle *player = new Rectangle(
+    auto player = std::make_shared<Rectangle>(
         RectangleParams{10, 48, Color(255, 80, 80, 1.0f), 5, 8, true});
     player->addCollider();
     mainCollection->addShape(player);
 
     // --- Platform Setup ---
-    std::vector<Rectangle *> platforms;
+    std::vector<std::shared_ptr<Rectangle>> platforms;
 
     auto createPlatform = [&](int x, int y, int w, int h, Color c) {
-        Rectangle *p = new Rectangle(RectangleParams{x, y, c, w, h, true});
+        auto p =
+            std::make_shared<Rectangle>(RectangleParams{x, y, c, w, h, true});
         p->addCollider();
         platforms.push_back(p);
         mainCollection->addShape(p);
@@ -112,7 +114,7 @@ void runPlatformer() {
         float oldPlayerY = player->getY();
         player->translate(0.0f, velocityY);
         canJump = false;
-        for (auto *platform : platforms) {
+        for (const auto& platform : platforms) {
             if (player->intersects(platform)) {
 
                 if (velocityY > 0 &&
@@ -139,8 +141,9 @@ void runPlatformer() {
 
         // --- Rendering ---
         pixels.clear();
-        renderer.render(pixels, std::vector<Collection *>{mainCollection},
-                        options);
+        renderer.render(
+            pixels, std::vector<std::shared_ptr<Collection>>{mainCollection},
+            options);
         display.setBuffer(pixels);
 
         // --- Frame Rate Control ---
@@ -152,6 +155,4 @@ void runPlatformer() {
             vTaskDelay(pdMS_TO_TICKS(remainingTime / 1000));
         }
     }
-
-    delete mainCollection;
 }

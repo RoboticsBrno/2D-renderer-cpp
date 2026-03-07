@@ -8,18 +8,19 @@
 #include "freertos/projdefs.h"
 #include "freertos/task.h"
 #include <cstdio>
+#include <memory>
 #include <stdio.h>
 
 void runCollisionTest() {
     const int width = 64;
     const int height = 64;
     Renderer renderer(width, height, Color(0, 0, 0, 1.0f));
-    Collection *mainCollection =
-        new Collection(ShapeParams{32, 32, Color(0, 0, 0, 1.0f), 0});
+    auto mainCollection = std::make_shared<Collection>(
+        ShapeParams{32, 32, Color(0, 0, 0, 1.0f), 0});
 
-    RegularPolygon *triangle = new RegularPolygon(
+    auto triangle = std::make_shared<RegularPolygon>(
         RegularPolygonRadiusParams{32, 60, Color(0, 255, 0, 1.0f), 3, 4, true});
-    Rectangle *enemy = new Rectangle(
+    auto enemy = std::make_shared<Rectangle>(
         RectangleParams{20, 0, Color(255, 0, 0, 1.0f), 10, 10, true});
     triangle->addCollider();
     enemy->addCollider();
@@ -50,7 +51,7 @@ void runCollisionTest() {
             triangle->setColor(Color(0, 255, 0, 1.0f)); // Green otherwise
         }
 
-        renderer.render(pixels, std::vector<Collection *>{mainCollection},
+        renderer.render(pixels, std::vector<std::shared_ptr<Collection>>{mainCollection},
                         options);
         display.setBuffer(pixels);
         vTaskDelay(pdMS_TO_TICKS(100));

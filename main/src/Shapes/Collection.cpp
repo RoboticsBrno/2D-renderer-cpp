@@ -1,37 +1,70 @@
-#include "Collection.hpp"
-#include <algorithm>
+#include "Shapes/Collection.hpp"
 
 Collection::Collection(const ShapeParams &params) : Shape(params) {}
 
-Collection::~Collection() {
-    for (auto shape : shapes) {
-        delete shape;
-    }
-}
+Collection::~Collection() { clear(); }
 
 Collider *Collection::defaultCollider() { return new CircleCollider(0, 0, 0); }
 
-void Collection::addShape(Shape *shape) {
-    shape->setParent(this);
-    shapes.push_back(shape);
-}
-
-void Collection::drawAntiAliased(Pixels &pixels) {
-    std::vector<Shape *> sortedShapes = shapes;
-    std::sort(sortedShapes.begin(), sortedShapes.end(),
-              [](Shape *a, Shape *b) { return a->getZ() < b->getZ(); });
-
-    for (Shape *shape : sortedShapes) {
-        shape->drawAntiAliased(pixels);
+void Collection::addShape(std::shared_ptr<Shape> shape) {
+    if (shape) {
+        shape->setParent(this);
+        shapes.push_back(shape);
+        this->isDirty = true;
     }
 }
 
-void Collection::drawAliased(Pixels &pixels) {
-    std::vector<Shape *> sortedShapes = shapes;
-    std::sort(sortedShapes.begin(), sortedShapes.end(),
-              [](Shape *a, Shape *b) { return a->getZ() < b->getZ(); });
+void Collection::removeShape(std::shared_ptr<Shape> shape) {
+    auto it = std::remove(shapes.begin(), shapes.end(), shape);
+    if (it != shapes.end()) {
+        (*it)->setParent(nullptr);
+        shapes.erase(it, shapes.end());
+        this->isDirty = true;
+    }
+}
 
-    for (Shape *shape : sortedShapes) {
-        shape->drawAliased(pixels);
+void Collection::clear() {
+    for (auto &shape : shapes) {
+        if (shape)
+            shape->setParent(nullptr);
+    }
+    shapes.clear();
+    cachedSortedShapes.clear();
+    this->isDirty = true;
+}
+
+void Collection::drawAliased(Pixels &pixels) {
+    if (this->isDirty) {
+        this->cachedSortedShapes = shapes;
+        std::sort(this->cachedSortedShapes.begin(),
+                  this->cachedSortedShapes.end(),
+                  [](const std::shared_ptr<Shape> &a,
+                     const std::shared_ptr<Shape> &b) {
+                      return a->getZ() < b->getZ();
+                  });
+        this->isDirty = false;
+    }
+
+    for (const auto &shape : this->cachedSortedShapes) {
+        if (shape)
+            shape->drawAliased(pixels);
+    }
+}
+
+void Collection::drawAntiAliased(Pixels &pixels) {
+    if (this->isDirty) {
+        this->cachedSortedShapes = shapes;
+        std::sort(this->cachedSortedShapes.begin(),
+                  this->cachedSortedShapes.end(),
+                  [](const std::shared_ptr<Shape> &a,
+                     const std::shared_ptr<Shape> &b) {
+                      return a->getZ() < b->getZ();
+                  });
+        this->isDirty = false;
+    }
+
+    for (const auto &shape : this->cachedSortedShapes) {
+        if (shape)
+            shape->drawAntiAliased(pixels);
     }
 }
