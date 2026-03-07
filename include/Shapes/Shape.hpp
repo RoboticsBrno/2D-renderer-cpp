@@ -3,6 +3,7 @@
 #include "../Texture.hpp"
 #include "Utils.hpp"
 #include <vector>
+#include <memory>
 
 struct DrawOptions {
     int screen_width;

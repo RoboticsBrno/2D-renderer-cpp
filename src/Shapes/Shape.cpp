@@ -2,6 +2,7 @@
 #include "Shapes/Collection.hpp"
 #include <algorithm>
 #include <cmath>
+#include <memory>
 
 Matrix2D multiplyMatrices(const Matrix2D &m1, const Matrix2D &m2) {
     Matrix2D out;

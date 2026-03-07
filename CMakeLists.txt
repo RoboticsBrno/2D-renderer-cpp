@@ -1,4 +1,25 @@
-cmake_minimum_required(VERSION 3.12)
+idf_component_register(SRCS 
+    "src/Profiler.cpp"
+    "src/Renderer.cpp"
+    "src/Utils.cpp"
+    "src/Texture.cpp"
+    "src/Collider.cpp"
+    "src/Font.cpp"
+    "src/Shapes/Shape.cpp"
+    "src/Shapes/Circle.cpp"
+    "src/Shapes/Rectangle.cpp"
+    "src/Shapes/Polygon.cpp"
+    "src/Shapes/LineSegment.cpp"
+    "src/Shapes/Point.cpp"
+    "src/Shapes/RegularPolygon.cpp"
+    "src/Shapes/Collection.cpp"
+    INCLUDE_DIRS 
+    "include"
+    "include/Shapes"
+    "include/examples"
+    "include/Font"
+    PRIV_REQUIRES esp_timer perfmon)
 
-include($ENV{IDF_PATH}/tools/cmake/project.cmake)
-project(cpp-renderer)
+target_compile_options(${COMPONENT_LIB} PRIVATE 
+    -Wno-narrowing
+    -Wno-error=narrowing)
