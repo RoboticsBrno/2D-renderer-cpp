@@ -13,6 +13,9 @@ struct Color {
         : r(r), g(g), b(b), a(a) {}
 };
 
+bool operator==(const Color &lhs, const Color &rhs);
+bool operator!=(const Color &lhs, const Color &rhs);
+
 struct Pixel {
     int x;
     int y;
@@ -21,6 +24,9 @@ struct Pixel {
     Pixel() : x(0), y(0), color() {}
     Pixel(int x, int y, Color color) : x(x), y(y), color(color) {}
 };
+
+bool operator==(const Pixel &lhs, const Pixel &rhs);
+bool operator!=(const Pixel &lhs, const Pixel &rhs);
 
 using Pixels = std::vector<Pixel>;
 
