@@ -32,11 +32,21 @@ void Rectangle::getInsidePoints(
 
     int minX = vertices[0].first, maxX = vertices[0].first;
     int minY = vertices[0].second, maxY = vertices[0].second;
-    for (int i = 1; i < 4; i++) {
-        minX = std::min(minX, vertices[i].first);
-        maxX = std::max(maxX, vertices[i].first);
-        minY = std::min(minY, vertices[i].second);
-        maxY = std::max(maxY, vertices[i].second);
+
+    // 1. Setup vertices and pre-compute edge vectors for the cross-product
+    int vx[4], vy[4], ex[4], ey[4];
+    for (int i = 0; i < 4; i++) {
+        vx[i] = vertices[i].first;
+        vy[i] = vertices[i].second;
+        minX = std::min(minX, vx[i]);
+        maxX = std::max(maxX, vx[i]);
+        minY = std::min(minY, vy[i]);
+        maxY = std::max(maxY, vy[i]);
+    }
+
+    for (int i = 0; i < 4; i++) {
+        ex[i] = vertices[(i + 1) % 4].first - vx[i];
+        ey[i] = vertices[(i + 1) % 4].second - vy[i];
     }
 
     float u0, v0, uX, vX, uY, vY;
@@ -49,22 +59,31 @@ void Rectangle::getInsidePoints(
     float duy = uY - u0;
     float dvy = vY - v0;
 
-    int v0x = vertices[0].first, v0y = vertices[0].second;
-    int dx1 = vertices[1].first - v0x, dy1 = vertices[1].second - v0y;
-    int dx2 = vertices[3].first - v0x, dy2 = vertices[3].second - v0y;
-    int lenSq1 = dx1 * dx1 + dy1 * dy1;
-    int lenSq2 = dx2 * dx2 + dy2 * dy2;
-
     for (int y = minY; y <= maxY; ++y) {
         float rowU = u0 + (y - minY) * duy;
         float rowV = v0 + (y - minY) * dvy;
 
         for (int x = minX; x <= maxX; ++x) {
-            int relX = x - v0x, relY = y - v0y;
-            int dot1 = relX * dx1 + relY * dy1;
-            int dot2 = relX * dx2 + relY * dy2;
 
-            if (dot1 >= 0 && dot1 <= lenSq1 && dot2 >= 0 && dot2 <= lenSq2) {
+            bool inside = true;
+            bool hasPos = false;
+            bool hasNeg = false;
+
+            for (int i = 0; i < 4; ++i) {
+                int cross = (x - vx[i]) * ey[i] - (y - vy[i]) * ex[i];
+
+                if (cross > 0)
+                    hasPos = true;
+                else if (cross < 0)
+                    hasNeg = true;
+
+                if (hasPos && hasNeg) {
+                    inside = false;
+                    break;
+                }
+            }
+
+            if (inside) {
                 Color c = texture ? texture->sample((int)(rowU + 0.5f),
                                                     (int)(rowV + 0.5f))
                                   : color;

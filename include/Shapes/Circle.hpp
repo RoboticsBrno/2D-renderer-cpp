@@ -34,5 +34,4 @@ class Circle : public Shape {
     void drawAntiAliasedPoint(Pixels &points, int cx, int cy, int x, int y,
                               float intensity);
     void fillCircle(Pixels &points, int cx, int cy, int r);
-    void fillCircleAntiAliased(Pixels &points, int cx, int cy, int r);
 };

@@ -72,6 +72,7 @@ void RegularPolygon::getInsidePoints(
         }
     }
 }
+
 Collider *RegularPolygon::defaultCollider() {
     int effectiveRadius =
         useSideLength ? calculateRadiusFromSideLength(sideLength) : radius;
@@ -131,44 +132,5 @@ void RegularPolygon::drawAntiAliased(Pixels &pixels) {
 
     if (fill) {
         getInsidePoints(pixels, vertices);
-    }
-}
-
-void RegularPolygon::getInsidePointsWithTexture(
-    Pixels &points, const std::vector<std::pair<int, int>> &vertices) {
-    if (vertices.empty())
-        return;
-
-    int minX = vertices[0].first;
-    int maxX = vertices[0].first;
-    int minY = vertices[0].second;
-    int maxY = vertices[0].second;
-
-    for (const auto &v : vertices) {
-        minX = std::min(minX, v.first);
-        maxX = std::max(maxX, v.first);
-        minY = std::min(minY, v.second);
-        maxY = std::max(maxY, v.second);
-    }
-
-    for (int x = static_cast<int>(minX); x <= static_cast<int>(maxX); x++) {
-        for (int y = static_cast<int>(minY); y <= static_cast<int>(maxY); y++) {
-            bool inside = false;
-            size_t n = vertices.size();
-            for (size_t i = 0, j = n - 1; i < n; j = i++) {
-                int xi = vertices[i].first, yi = vertices[i].second;
-                int xj = vertices[j].first, yj = vertices[j].second;
-
-                bool intersect = ((yi > y) != (yj > y)) &&
-                                 (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-                if (intersect)
-                    inside = !inside;
-            }
-
-            if (inside) {
-                Color sampledColor = sampleTexture(x, y);
-                points.push_back(Pixel(x, y, sampledColor));
-            }
-        }
     }
 }

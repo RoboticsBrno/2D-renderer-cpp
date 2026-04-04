@@ -462,7 +462,8 @@ void Shape::getInsidePoints(Pixels &points,
             }
 
             if (inside) {
-                points.push_back(Pixel(x, y, color));
+                Color c = texture ? sampleTexture(x, y) : color;
+                points.push_back(Pixel(x, y, c));
             }
         }
     }

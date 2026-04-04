@@ -50,7 +50,4 @@ class RegularPolygon : public Shape {
     std::vector<LineSegment *> getSegments();
     void getInsidePoints(Pixels &points,
                          const std::vector<std::pair<int, int>> &vertices);
-
-    void getInsidePointsWithTexture(
-        Pixels &points, const std::vector<std::pair<int, int>> &vertices);
 };

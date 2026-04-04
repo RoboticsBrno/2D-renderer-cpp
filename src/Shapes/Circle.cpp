@@ -59,45 +59,6 @@ void Circle::fillCircle(Pixels &pixels, int cx, int cy, int r) {
     }
 }
 
-void Circle::fillCircleAntiAliased(Pixels &points, int cx, int cy, int r) {
-    int x = 0;
-    int y = r;
-    int d = 3 - 2 * r;
-
-    auto drawline = [&](int x1, int y1, int x2, int y2) {
-        for (int i = x1; i <= x2; i++) {
-            Color sampledColor = sampleTexture(i, y1);
-            float alpha = sampledColor.a;
-            if (alpha > 0.01f) {
-                points.push_back(Pixel(i, y1,
-                                       Color(sampledColor.r, sampledColor.g,
-                                             sampledColor.b, alpha)));
-            }
-        }
-    };
-
-    while (y >= x) {
-        drawline(cx - x, cy + y, cx + x, cy + y);
-        if (y != 0) {
-            drawline(cx - x, cy - y, cx + x, cy - y);
-        }
-        if (x != y) {
-            drawline(cx - y, cy + x, cx + y, cy + x);
-            if (x != 0) {
-                drawline(cx - y, cy - x, cx + y, cy - x);
-            }
-        }
-
-        x++;
-        if (d > 0) {
-            y--;
-            d = d + 4 * (x - y) + 10;
-        } else {
-            d = d + 4 * x + 6;
-        }
-    }
-}
-
 void Circle::drawAliased(Pixels &pixels) {
     auto center = getTransformedPosition(0, 0);
     int r = radius;
@@ -160,6 +121,6 @@ void Circle::drawAntiAliased(Pixels &pixels) {
     }
 
     if (fill) {
-        fillCircleAntiAliased(pixels, center.first, center.second, r);
+        fillCircle(pixels, center.first, center.second, r);
     }
 }
