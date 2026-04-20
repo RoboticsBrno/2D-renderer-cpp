@@ -30,7 +30,7 @@ int RegularPolygon::calculateRadiusFromSideLength(int sideLength) {
 }
 
 void RegularPolygon::getInsidePoints(
-    Pixels &points, const std::vector<std::pair<int, int>> &vertices) {
+    Display &displayGrid, const std::vector<std::pair<int, int>> &vertices) {
     if (vertices.size() < 3)
         return;
 
@@ -67,7 +67,7 @@ void RegularPolygon::getInsidePoints(
             int endX = nodes[k + 1];
 
             for (int x = startX; x <= endX; x++) {
-                points.push_back(Pixel(x, y, sampleTexture(x, y)));
+                setPixelSafe(displayGrid, x, y, sampleTexture(x, y));
             }
         }
     }
@@ -103,34 +103,34 @@ std::vector<std::pair<int, int>> RegularPolygon::getVertices() {
     return vertices;
 }
 
-void RegularPolygon::drawAliased(Pixels &pixels) {
+void RegularPolygon::drawAliased(Display &displayGrid) {
     auto vertices = getVertices();
 
     if (vertices.size() >= 3) {
         for (size_t i = 0; i < vertices.size(); i++) {
             size_t j = (i + 1) % vertices.size();
-            bresenhamLine(pixels, vertices[i].first, vertices[i].second,
+            bresenhamLine(displayGrid, vertices[i].first, vertices[i].second,
                           vertices[j].first, vertices[j].second);
         }
     }
 
     if (fill) {
-        getInsidePoints(pixels, vertices);
+        getInsidePoints(displayGrid, vertices);
     }
 }
 
-void RegularPolygon::drawAntiAliased(Pixels &pixels) {
+void RegularPolygon::drawAntiAliased(Display &displayGrid) {
     auto vertices = getVertices();
 
     if (vertices.size() >= 3) {
         for (size_t i = 0; i < vertices.size(); i++) {
             size_t j = (i + 1) % vertices.size();
-            wuLine(pixels, vertices[i].first, vertices[i].second,
+            wuLine(displayGrid, vertices[i].first, vertices[i].second,
                    vertices[j].first, vertices[j].second);
         }
     }
 
     if (fill) {
-        getInsidePoints(pixels, vertices);
+        getInsidePoints(displayGrid, vertices);
     }
 }

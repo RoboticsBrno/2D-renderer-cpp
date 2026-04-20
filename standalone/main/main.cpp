@@ -67,13 +67,9 @@ void runTestShapes() {
 
     DrawOptions options = {width, height, true}; // Anti-aliased
 
-    Pixels pixels;
-
     while (true) {
-        pixels.clear();
         renderer.render(
-            pixels, std::vector<std::shared_ptr<Collection>>{mainCollection},
-            options);
+            std::vector<std::shared_ptr<Collection>>{mainCollection}, options);
         ESP_LOGI("Render", "rendered");
         vTaskDelay(pdMS_TO_TICKS(100));
     }

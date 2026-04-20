@@ -285,13 +285,20 @@ std::pair<int, int> Shape::getTransformedPosition(int inputX, int inputY) {
     return transformPoint(inputX, inputY, globalMat);
 }
 
+void Shape::setPixelSafe(Display &displayGrid, int x, int y, const Color &c) {
+    if (x >= 0 && x < displayGrid.width && y >= 0 && y < displayGrid.height) {
+        displayGrid.pixels[y * displayGrid.width + x] = c;
+    }
+}
+
 // Drawing methods
-void Shape::draw(Pixels &pixels, const DrawOptions &options) {
-    options.antialias ? drawAntiAliased(pixels) : drawAliased(pixels);
+void Shape::draw(Display &displayGrid, const DrawOptions &options) {
+    options.antialias ? drawAntiAliased(displayGrid) : drawAliased(displayGrid);
 }
 
 // Line drawing algorithms
-void Shape::bresenhamLine(Pixels &points, int x0, int y0, int x1, int y1) {
+void Shape::bresenhamLine(Display &displayGrid, int x0, int y0, int x1,
+                          int y1) {
     int dx = std::abs(x1 - x0);
     int dy = std::abs(y1 - y0);
     int sx = (x0 < x1) ? 1 : -1;
@@ -302,7 +309,7 @@ void Shape::bresenhamLine(Pixels &points, int x0, int y0, int x1, int y1) {
     int y = y0;
 
     Color sampledColor = texture ? sampleTexture(x, y) : color;
-    points.push_back(Pixel(x, y, sampledColor));
+    setPixelSafe(displayGrid, x, y, sampledColor);
 
     while (x != x1 || y != y1) {
         int e2 = err * 2;
@@ -320,11 +327,11 @@ void Shape::bresenhamLine(Pixels &points, int x0, int y0, int x1, int y1) {
         if (texture) {
             sampledColor = sampleTexture(x, y);
         }
-        points.push_back(Pixel(x, y, sampledColor));
+        setPixelSafe(displayGrid, x, y, sampledColor);
     }
 }
 
-void Shape::wuLine(Pixels &points, int x0_int, int y0_int, int x1_int,
+void Shape::wuLine(Display &points, int x0_int, int y0_int, int x1_int,
                    int y1_int) {
     float x0 = static_cast<float>(x0_int);
     float y0 = static_cast<float>(y0_int);
@@ -409,7 +416,7 @@ void Shape::wuLine(Pixels &points, int x0_int, int y0_int, int x1_int,
 }
 
 // Pixel manipulation
-void Shape::addPixel(Pixels &points, int x, int y, float alpha) {
+void Shape::addPixel(Display &displayGrid, int x, int y, float alpha) {
     if (alpha <= 0.005f)
         return;
 
@@ -425,12 +432,12 @@ void Shape::addPixel(Pixels &points, int x, int y, float alpha) {
     }
 
     if (pixelColor.a > 0.005f) {
-        points.push_back(Pixel(x, y, pixelColor));
+        setPixelSafe(displayGrid, x, y, pixelColor);
     }
 }
 
 // Fill algorithms
-void Shape::getInsidePoints(Pixels &points,
+void Shape::getInsidePoints(Display &displayGrid,
                             const std::vector<std::pair<int, int>> &vertices) {
     if (vertices.empty())
         return;
@@ -463,7 +470,7 @@ void Shape::getInsidePoints(Pixels &points,
 
             if (inside) {
                 Color c = texture ? sampleTexture(x, y) : color;
-                points.push_back(Pixel(x, y, c));
+                setPixelSafe(displayGrid, x, y, c);
             }
         }
     }

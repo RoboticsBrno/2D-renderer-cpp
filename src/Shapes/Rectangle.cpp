@@ -26,7 +26,7 @@ std::vector<std::pair<int, int>> Rectangle::getVertices() {
 }
 
 void Rectangle::getInsidePoints(
-    Pixels &points, const std::vector<std::pair<int, int>> &vertices) {
+    Display &displayGrid, const std::vector<std::pair<int, int>> &vertices) {
     if (vertices.size() < 4)
         return;
 
@@ -88,7 +88,7 @@ void Rectangle::getInsidePoints(
                                                     (int)(rowV + 0.5f))
                                   : color;
                 c.a *= color.a;
-                points.push_back(Pixel(x, y, c));
+                setPixelSafe(displayGrid, x, y, c);
             }
             rowU += dux;
             rowV += dvx;
@@ -96,7 +96,7 @@ void Rectangle::getInsidePoints(
     }
 }
 
-void Rectangle::drawAntiAliased(Pixels &pixels) {
+void Rectangle::drawAntiAliased(Display &displayGrid) {
     auto vertices = getVertices();
 
     if (vertices.size() >= 4) {
@@ -105,18 +105,18 @@ void Rectangle::drawAntiAliased(Pixels &pixels) {
         auto br = vertices[2];
         auto tr = vertices[3];
 
-        wuLine(pixels, tl.first, tl.second, tr.first, tr.second);
-        wuLine(pixels, bl.first, bl.second, br.first, br.second);
-        wuLine(pixels, tl.first, tl.second, bl.first, bl.second);
-        wuLine(pixels, tr.first, tr.second, br.first, br.second);
+        wuLine(displayGrid, tl.first, tl.second, tr.first, tr.second);
+        wuLine(displayGrid, bl.first, bl.second, br.first, br.second);
+        wuLine(displayGrid, tl.first, tl.second, bl.first, bl.second);
+        wuLine(displayGrid, tr.first, tr.second, br.first, br.second);
     }
 
     if (fill) {
-        getInsidePoints(pixels, vertices);
+        getInsidePoints(displayGrid, vertices);
     }
 }
 
-void Rectangle::drawAliased(Pixels &pixels) {
+void Rectangle::drawAliased(Display &displayGrid) {
     auto vertices = getVertices();
 
     if (vertices.size() >= 4) {
@@ -125,13 +125,13 @@ void Rectangle::drawAliased(Pixels &pixels) {
         auto br = vertices[2];
         auto tr = vertices[3];
 
-        bresenhamLine(pixels, tl.first, tl.second, tr.first, tr.second);
-        bresenhamLine(pixels, bl.first, bl.second, br.first, br.second);
-        bresenhamLine(pixels, tl.first, tl.second, bl.first, bl.second);
-        bresenhamLine(pixels, tr.first, tr.second, br.first, br.second);
+        bresenhamLine(displayGrid, tl.first, tl.second, tr.first, tr.second);
+        bresenhamLine(displayGrid, bl.first, bl.second, br.first, br.second);
+        bresenhamLine(displayGrid, tl.first, tl.second, bl.first, bl.second);
+        bresenhamLine(displayGrid, tr.first, tr.second, br.first, br.second);
     }
 
     if (fill) {
-        getInsidePoints(pixels, vertices);
+        getInsidePoints(displayGrid, vertices);
     }
 }

@@ -21,12 +21,12 @@ class Polygon : public Shape {
   public:
     Polygon(const PolygonParams &params);
     Collider *defaultCollider() override;
-    void drawAntiAliased(Pixels &pixels) override;
-    void drawAliased(Pixels &pixels) override;
+    void drawAntiAliased(Display &displayGrid) override;
+    void drawAliased(Display &displayGrid) override;
 
   private:
     std::vector<std::pair<int, int>> getTransformedVertices();
     std::vector<LineSegment *> getSegments();
-    void getInsidePoints(Pixels &points,
+    void getInsidePoints(Display &displayGrid,
                          const std::vector<std::pair<int, int>> &vertices);
 };

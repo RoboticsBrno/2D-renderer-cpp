@@ -11,22 +11,20 @@ class Renderer {
     int width;
     int height;
     Color backgroundColor;
+    Display displayGrid;
 
   public:
     Renderer(int width, int height,
              const Color &backgroundColor = Color(0, 0, 0, 1.0f));
 
-    void render(Pixels &pixels,
-                const std::vector<std::shared_ptr<Collection>> &collections,
+    void render(const std::vector<std::shared_ptr<Collection>> &collections,
                 const DrawOptions &options);
 
-    void drawText(Pixels &pixels, const std::string &text, int x, int y,
-                  const Font &font, const Color &color, bool wrap = false);
-
-    static Pixels blendPixels(const Pixels &pixels);
-    static Pixel blendPixel(const Pixel &background, const Pixel &foreground);
+    void drawText(const std::string &text, int x, int y, const Font &font,
+                  const Color &color, bool wrap = false);
 
     int getWidth() const { return width; }
     int getHeight() const { return height; }
-    const Color &getBackgroundColor() const { return backgroundColor; }
+    const Display &getDisplayGrid() const { return displayGrid; }
+    void clear();
 };

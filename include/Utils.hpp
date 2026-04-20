@@ -1,5 +1,7 @@
 #pragma once
-#include <cstdint>
+#include "esp_heap_caps.h"
+#include "esp_log.h"
+#include <cstdlib>
 #include <vector>
 
 struct Color {
@@ -16,19 +18,32 @@ struct Color {
 bool operator==(const Color &lhs, const Color &rhs);
 bool operator!=(const Color &lhs, const Color &rhs);
 
-struct Pixel {
-    int x;
-    int y;
-    Color color;
+template <class T> struct PsramAllocator {
+    typedef T value_type;
 
-    Pixel() : x(0), y(0), color() {}
-    Pixel(int x, int y, Color color) : x(x), y(y), color(color) {}
+    PsramAllocator() = default;
+    template <class U>
+    constexpr PsramAllocator(const PsramAllocator<U> &) noexcept {}
+
+    T *allocate(std::size_t n) {
+        void *p = heap_caps_malloc(n * sizeof(T), MALLOC_CAP_SPIRAM);
+        if (!p) {
+            ESP_LOGE("PSRAM",
+                     "CRITICAL: Failed to allocate %zu bytes in PSRAM!",
+                     n * sizeof(T));
+            std::abort();
+        }
+        return static_cast<T *>(p);
+    }
+
+    void deallocate(T *p, std::size_t) noexcept { heap_caps_free(p); }
 };
 
-bool operator==(const Pixel &lhs, const Pixel &rhs);
-bool operator!=(const Pixel &lhs, const Pixel &rhs);
-
-using Pixels = std::vector<Pixel>;
+struct Display {
+    std::vector<Color, PsramAllocator<Color>> pixels;
+    int width = 0;
+    int height = 0;
+};
 
 class Texture;
 

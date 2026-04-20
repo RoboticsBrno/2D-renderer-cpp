@@ -13,8 +13,8 @@ class Collection : public Shape {
     void addShape(std::shared_ptr<Shape> shape);
     void removeShape(std::shared_ptr<Shape> shape);
 
-    void drawAliased(Pixels &pixels) override;
-    void drawAntiAliased(Pixels &pixels) override;
+    void drawAliased(Display &displayGrid) override;
+    void drawAntiAliased(Display &displayGrid) override;
 
     void clear();
 

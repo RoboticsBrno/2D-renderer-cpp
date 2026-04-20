@@ -21,7 +21,7 @@ std::vector<std::pair<int, int>> Polygon::getTransformedVertices() {
 }
 
 void Polygon::getInsidePoints(
-    Pixels &points, const std::vector<std::pair<int, int>> &vertices) {
+    Display &displayGrid, const std::vector<std::pair<int, int>> &vertices) {
     if (vertices.size() < 3)
         return;
 
@@ -49,19 +49,19 @@ void Polygon::getInsidePoints(
             if (i + 1 >= nodes.size())
                 break;
             for (int x = nodes[i]; x <= nodes[i + 1]; x++) {
-                points.push_back(Pixel(x, y, sampleTexture(x, y)));
+                setPixelSafe(displayGrid, x, y, sampleTexture(x, y));
             }
         }
     }
 }
 
-void Polygon::drawAliased(Pixels &pixels) {
+void Polygon::drawAliased(Display &displayGrid) {
     auto transformedVertices = getTransformedVertices();
 
     if (transformedVertices.size() >= 3) {
         for (size_t i = 0; i < transformedVertices.size(); i++) {
             size_t j = (i + 1) % transformedVertices.size();
-            bresenhamLine(pixels, transformedVertices[i].first,
+            bresenhamLine(displayGrid, transformedVertices[i].first,
                           transformedVertices[i].second,
                           transformedVertices[j].first,
                           transformedVertices[j].second);
@@ -69,23 +69,23 @@ void Polygon::drawAliased(Pixels &pixels) {
     }
 
     if (fill) {
-        getInsidePoints(pixels, transformedVertices);
+        getInsidePoints(displayGrid, transformedVertices);
     }
 }
 
-void Polygon::drawAntiAliased(Pixels &pixels) {
+void Polygon::drawAntiAliased(Display &displayGrid) {
     auto transformedVertices = getTransformedVertices();
 
     if (transformedVertices.size() >= 3) {
         for (size_t i = 0; i < transformedVertices.size(); i++) {
             size_t j = (i + 1) % transformedVertices.size();
-            wuLine(pixels, transformedVertices[i].first,
+            wuLine(displayGrid, transformedVertices[i].first,
                    transformedVertices[i].second, transformedVertices[j].first,
                    transformedVertices[j].second);
         }
     }
 
     if (fill) {
-        getInsidePoints(pixels, transformedVertices);
+        getInsidePoints(displayGrid, transformedVertices);
     }
 }

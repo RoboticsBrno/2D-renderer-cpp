@@ -33,7 +33,7 @@ void Collection::clear() {
     this->isDirty = true;
 }
 
-void Collection::drawAliased(Pixels &pixels) {
+void Collection::drawAliased(Display &displayGrid) {
     if (this->isDirty) {
         this->cachedSortedShapes = shapes;
         std::sort(this->cachedSortedShapes.begin(),
@@ -47,11 +47,11 @@ void Collection::drawAliased(Pixels &pixels) {
 
     for (const auto &shape : this->cachedSortedShapes) {
         if (shape)
-            shape->drawAliased(pixels);
+            shape->drawAliased(displayGrid);
     }
 }
 
-void Collection::drawAntiAliased(Pixels &pixels) {
+void Collection::drawAntiAliased(Display &displayGrid) {
     if (this->isDirty) {
         this->cachedSortedShapes = shapes;
         std::sort(this->cachedSortedShapes.begin(),
@@ -65,6 +65,6 @@ void Collection::drawAntiAliased(Pixels &pixels) {
 
     for (const auto &shape : this->cachedSortedShapes) {
         if (shape)
-            shape->drawAntiAliased(pixels);
+            shape->drawAntiAliased(displayGrid);
     }
 }

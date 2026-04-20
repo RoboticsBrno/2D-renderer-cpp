@@ -2,12 +2,22 @@
 #include "Collection.hpp"
 #include <algorithm>
 #include <memory>
+#include <vector>
 
 Renderer::Renderer(int width, int height, const Color &backgroundColor)
-    : width(width), height(height), backgroundColor(backgroundColor) {}
+    : width(width), height(height), backgroundColor(backgroundColor) {
+    displayGrid.width = width;
+    displayGrid.height = height;
+    displayGrid.pixels.resize(width * height, backgroundColor);
+}
+
+void Renderer::clear() {
+    std::fill(displayGrid.pixels.begin(), displayGrid.pixels.end(),
+              backgroundColor);
+}
 
 void Renderer::render(
-    Pixels &pixels, const std::vector<std::shared_ptr<Collection>> &collections,
+    const std::vector<std::shared_ptr<Collection>> &collections,
     const DrawOptions &options) {
     std::vector<std::shared_ptr<Collection>> sortedCollections = collections;
     std::sort(sortedCollections.begin(), sortedCollections.end(),
@@ -16,15 +26,21 @@ void Renderer::render(
               });
 
     for (std::shared_ptr<Collection> collection : sortedCollections) {
-        collection->draw(pixels, options);
+        collection->draw(displayGrid, options);
     }
 }
 
-void Renderer::drawText(Pixels &pixels, const std::string &text, int x, int y,
-                        const Font &font, const Color &color, bool wrap) {
+void Renderer::drawText(const std::string &text, int x, int y, const Font &font,
+                        const Color &color, bool wrap) {
     int currentX = x;
     int currentY = y;
     int lineHeight = font.getHeight() + 1;
+
+    auto setPixel = [&](int px, int py, const Color &c) {
+        if (px >= 0 && px < width && py >= 0 && py < height) {
+            displayGrid.pixels[py * width + px] = c;
+        }
+    };
 
     for (char c : text) {
         if (c == '\n') {
@@ -45,16 +61,16 @@ void Renderer::drawText(Pixels &pixels, const std::string &text, int x, int y,
 
         if (!glyph) {
             for (int i = 0; i < 5; ++i) {
-                pixels.push_back({currentX + i, currentY, color});
+                setPixel(currentX + i, currentY, color);
             }
             for (int i = 0; i < 5; ++i) {
-                pixels.push_back({currentX + i, currentY + 6, color});
+                setPixel(currentX + i, currentY + 6, color);
             }
             for (int i = 0; i < 7; ++i) {
-                pixels.push_back({currentX, currentY + i, color});
+                setPixel(currentX, currentY + i, color);
             }
             for (int i = 0; i < 7; ++i) {
-                pixels.push_back({currentX + 4, currentY + i, color});
+                setPixel(currentX + 4, currentY + i, color);
             }
             currentX += 5;
             continue;
@@ -66,7 +82,7 @@ void Renderer::drawText(Pixels &pixels, const std::string &text, int x, int y,
             for (int col = 0; col < glyph->width; ++col) {
                 int bit_pos = 4 - (col + glyph->x_offset);
                 if (bit_pos >= 0 && (line & (1 << bit_pos))) {
-                    pixels.push_back({currentX + col, currentY + row, color});
+                    setPixel(currentX + col, currentY + row, color);
                 }
             }
         }

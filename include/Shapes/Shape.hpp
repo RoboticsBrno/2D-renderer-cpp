@@ -2,8 +2,8 @@
 #include "../Collider.hpp"
 #include "../Texture.hpp"
 #include "Utils.hpp"
-#include <vector>
 #include <memory>
+#include <vector>
 
 struct DrawOptions {
     int screen_width;
@@ -75,10 +75,12 @@ class Shape {
 
     // Protected helper methods
     std::pair<int, int> getTransformedPosition(int inputX, int inputY);
-    void bresenhamLine(Pixels &points, int x0, int y0, int x1, int y1);
-    void wuLine(Pixels &points, int x0, int y0, int x1, int y1);
-    void addPixel(Pixels &points, int x, int y, float alpha);
-    void getInsidePoints(Pixels &points,
+
+    void setPixelSafe(Display &displayGrid, int x, int y, const Color &c);
+    void bresenhamLine(Display &points, int x0, int y0, int x1, int y1);
+    void wuLine(Display &points, int x0, int y0, int x1, int y1);
+    void addPixel(Display &points, int x, int y, float alpha);
+    void getInsidePoints(Display &points,
                          const std::vector<std::pair<int, int>> &vertices);
     void getUVAt(int x, int y, float &outU, float &outV);
 
@@ -91,12 +93,12 @@ class Shape {
     std::pair<int, int> transformPoint(int x, int y, const Matrix2D &m);
 
     // Pure virtual methods
-    virtual void drawAntiAliased(Pixels &pixels) = 0;
-    virtual void drawAliased(Pixels &pixels) = 0;
+    virtual void drawAntiAliased(Display &pixels) = 0;
+    virtual void drawAliased(Display &pixels) = 0;
     virtual Collider *defaultCollider() = 0;
 
     // Drawing
-    void draw(Pixels &pixels, const DrawOptions &options);
+    void draw(Display &pixels, const DrawOptions &options);
 
     // Position and transformation methods
     void setPosition(int x, int y);
