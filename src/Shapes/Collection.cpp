@@ -1,10 +1,24 @@
 #include "Shapes/Collection.hpp"
+#include <memory>
 
 Collection::Collection(const ShapeParams &params) : Shape(params) {}
 
 Collection::~Collection() { clear(); }
 
 Collider *Collection::defaultCollider() { return new CircleCollider(0, 0, 0); }
+
+void Collection::markDirty() {
+    if (isDirty)
+        return;
+
+    Shape::markDirty();
+
+    for (std::shared_ptr<Shape> child : shapes) {
+        if (child != nullptr) {
+            child->markDirty();
+        }
+    }
+}
 
 void Collection::addShape(std::shared_ptr<Shape> shape) {
     if (shape) {

@@ -18,11 +18,32 @@ int RegularPolygon::getRadius() {
     return radius;
 }
 
-void RegularPolygon::setSides(int sides) { this->sides = sides; }
+void RegularPolygon::updateLocalVertices() {
+    if (localVerticesValid)
+        return;
+
+    int effectiveRadius =
+        useSideLength ? calculateRadiusFromSideLength(sideLength) : radius;
+    localVertices.clear();
+    localVertices.reserve(sides);
+
+    for (int i = 0; i < sides; i++) {
+        float angle = 2.0f * M_PI / sides * i - M_PI / 2.0f;
+        localVertices.push_back({effectiveRadius * std::cos(angle),
+                                 effectiveRadius * std::sin(angle)});
+    }
+    localVerticesValid = true;
+}
+
+void RegularPolygon::setSides(int sides) {
+    this->sides = sides;
+    localVerticesValid = false;
+}
 
 void RegularPolygon::setRadius(int radius) {
     this->radius = radius;
     this->useSideLength = false;
+    localVerticesValid = false;
 }
 
 int RegularPolygon::calculateRadiusFromSideLength(int sideLength) {
@@ -36,15 +57,29 @@ void RegularPolygon::getInsidePoints(
 
     int minY = vertices[0].second, maxY = vertices[0].second;
     for (const auto &v : vertices) {
-        if (v.second < minY)
-            minY = v.second;
-        if (v.second > maxY)
-            maxY = v.second;
+        minY = std::min(minY, v.second);
+        maxY = std::max(maxY, v.second);
     }
 
+    minY = std::max(0, minY);
+    maxY = std::min(displayGrid.height - 1, maxY);
+
+    uint8_t finalAlpha = color.a;
+    if (finalAlpha == 0)
+        return;
+    uint32_t invAlpha = 255 - finalAlpha;
+    uint32_t r = color.r;
+    uint32_t g = color.g;
+    uint32_t b = color.b;
+    bool hasTexture = (texture != nullptr);
+
+    std::vector<int> nodes;
+    nodes.reserve(16);
+
+    size_t n = vertices.size();
+
     for (int y = minY; y <= maxY; y++) {
-        std::vector<int> nodes;
-        size_t n = vertices.size();
+        nodes.clear();
 
         for (size_t i = 0; i < n; i++) {
             size_t j = (i + 1) % n;
@@ -52,22 +87,37 @@ void RegularPolygon::getInsidePoints(
             int xj = vertices[j].first, yj = vertices[j].second;
 
             if ((yi < y && yj >= y) || (yj < y && yi >= y)) {
-                int x = xi + (int)((float)(y - yi) * (xj - xi) / (yj - yi));
-                nodes.push_back(x);
+                nodes.push_back(xi + (y - yi) * (xj - xi) / (yj - yi));
             }
         }
 
         std::sort(nodes.begin(), nodes.end());
 
-        for (size_t k = 0; k < nodes.size(); k += 2) {
-            if (k + 1 >= nodes.size())
-                break;
+        for (size_t k = 0; k + 1 < nodes.size(); k += 2) {
+            int startX = std::max(0, nodes[k]);
+            int endX = std::min(displayGrid.width - 1, nodes[k + 1]);
 
-            int startX = nodes[k];
-            int endX = nodes[k + 1];
+            if (startX > endX)
+                continue;
 
-            for (int x = startX; x <= endX; x++) {
-                setPixelSafe(displayGrid, x, y, sampleTexture(x, y));
+            if (!hasTexture) {
+                int index = y * displayGrid.width + startX;
+                Color *targetPixel = &displayGrid.pixels[index];
+
+                for (int x = startX; x <= endX; x++) {
+                    targetPixel->r =
+                        (r * finalAlpha + targetPixel->r * invAlpha) >> 8;
+                    targetPixel->g =
+                        (g * finalAlpha + targetPixel->g * invAlpha) >> 8;
+                    targetPixel->b =
+                        (b * finalAlpha + targetPixel->b * invAlpha) >> 8;
+                    targetPixel->a = 255;
+                    targetPixel++;
+                }
+            } else {
+                for (int x = startX; x <= endX; x++) {
+                    addPixel(displayGrid, x, y, 1.0f);
+                }
             }
         }
     }
@@ -80,29 +130,21 @@ Collider *RegularPolygon::defaultCollider() {
 }
 
 std::vector<std::pair<int, int>> RegularPolygon::getVertices() {
-    int effectiveRadius;
-    if (useSideLength) {
-        effectiveRadius = calculateRadiusFromSideLength(sideLength);
-    } else {
-        effectiveRadius = radius;
-    }
+    updateLocalVertices();
 
-    std::vector<std::pair<int, int>> vertices;
+    std::vector<std::pair<int, int>> transformedVertices;
+    transformedVertices.reserve(sides);
 
     Matrix2D globalMat = getGlobalMatrix();
 
-    for (int i = 0; i < sides; i++) {
-        float angle = 2 * M_PI / sides * i - M_PI / 2;
-
-        float vx = effectiveRadius * std::cos(angle);
-        float vy = effectiveRadius * std::sin(angle);
-
-        vertices.push_back(Shape::transformPoint(
-            static_cast<int>(vx), static_cast<int>(vy), globalMat));
+    for (const auto &localV : localVertices) {
+        int x, y;
+        Shape::transformPoint(static_cast<int>(localV.first),
+                              static_cast<int>(localV.second), globalMat, x, y);
+        transformedVertices.push_back({x, y});
     }
-    return vertices;
+    return transformedVertices;
 }
-
 void RegularPolygon::drawAliased(Display &displayGrid) {
     auto vertices = getVertices();
 

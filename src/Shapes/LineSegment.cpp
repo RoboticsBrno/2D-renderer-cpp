@@ -10,25 +10,18 @@ Collider *LineSegment::defaultCollider() {
 void LineSegment::drawAliased(Display &displayGrid) {
     Matrix2D globalMat = getGlobalMatrix();
 
-    auto transformedStart = Shape::transformPoint(0, 0, globalMat);
-    auto transformedEnd = Shape::transformPoint(x2 - x, y2 - y, globalMat);
-
-    int x0 = transformedStart.first;
-    int y0 = transformedStart.second;
-    int x1 = transformedEnd.first;
-    int y1 = transformedEnd.second;
+    int x0, y0, x1, y1;
+    Shape::transformPoint(0, 0, globalMat, x0, y0);
+    Shape::transformPoint(x2 - x, y2 - y, globalMat, x1, y1);
 
     bresenhamLine(displayGrid, x0, y0, x1, y1);
 }
 void LineSegment::drawAntiAliased(Display &displayGrid) {
     Matrix2D globalMat = getGlobalMatrix();
 
-    auto transformedStart = Shape::transformPoint(0, 0, globalMat);
-    auto transformedEnd = Shape::transformPoint(x2 - x, y2 - y, globalMat);
-    int x0 = transformedStart.first;
-    int y0 = transformedStart.second;
-    int x1 = transformedEnd.first;
-    int y1 = transformedEnd.second;
+    int x0, y0, x1, y1;
+    Shape::transformPoint(0, 0, globalMat, x0, y0);
+    Shape::transformPoint(x2 - x, y2 - y, globalMat, x1, y1);
 
     wuLine(displayGrid, x0, y0, x1, y1);
 }

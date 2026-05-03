@@ -6,14 +6,14 @@
 
 class Texture {
   private:
-    std::vector<std::vector<Color>> pixels;
+    std::vector<Color, PsramAllocator<Color>> pixels;
     int width;
     int height;
     std::string wrapMode;
     bool valid;
 
   public:
-    Texture(const std::vector<std::vector<Color>> &pixels);
+Texture(const std::vector<Color, PsramAllocator<Color>> &pixels, int width, int height);
     Texture();
 
     static bool fromBMP(const std::string &filename, Texture &outTexture,

@@ -33,14 +33,15 @@ class Shape {
     float texCos = 1.0f, texSin = 0.0f;
     bool trigCacheValid = false;
     bool texTrigCacheValid = false;
-
-    void updateTrigCache();
-    void updateTextureTrigCache();
+    bool globalMatrixDirty = true;
 
   protected:
     float x;
     float y;
     Color color;
+
+    float currentScreenPivotX = 0.0f;
+    float currentScreenPivotY = 0.0f;
 
     struct Rotation {
         int x;
@@ -71,12 +72,15 @@ class Shape {
         float rotation;
     } uvTransform;
 
+    Matrix2D cachedGlobalMatrix;
+    bool isDirty = true;
+
     Collider *collider;
 
     // Protected helper methods
+    void transformPoint(int x, int y, const Matrix2D &m, int &outX, int &outY);
     std::pair<int, int> getTransformedPosition(int inputX, int inputY);
 
-    void setPixelSafe(Display &displayGrid, int x, int y, const Color &c);
     void bresenhamLine(Display &points, int x0, int y0, int x1, int y1);
     void wuLine(Display &points, int x0, int y0, int x1, int y1);
     void addPixel(Display &points, int x, int y, float alpha);
@@ -84,18 +88,27 @@ class Shape {
                          const std::vector<std::pair<int, int>> &vertices);
     void getUVAt(int x, int y, float &outU, float &outV);
 
+    void updateTrigCache();
+    void updateTextureTrigCache();
+
+    float tex_A, tex_B, tex_C;
+    float tex_D, tex_E, tex_F;
+
+    void updateTextureMatrix();
+
   public:
     Shape(const ShapeParams &params);
     virtual ~Shape();
 
     Matrix2D getLocalMatrix();
     Matrix2D getGlobalMatrix();
-    std::pair<int, int> transformPoint(int x, int y, const Matrix2D &m);
 
     // Pure virtual methods
     virtual void drawAntiAliased(Display &pixels) = 0;
     virtual void drawAliased(Display &pixels) = 0;
     virtual Collider *defaultCollider() = 0;
+
+    virtual void markDirty() { isDirty = true; };
 
     // Drawing
     void draw(Display &pixels, const DrawOptions &options);

@@ -10,12 +10,14 @@ Collider *Polygon::defaultCollider() {
 
 std::vector<std::pair<int, int>> Polygon::getTransformedVertices() {
     std::vector<std::pair<int, int>> transformed;
+    transformed.reserve(vertices.size());
 
     Matrix2D globalMat = getGlobalMatrix();
 
     for (const auto &v : vertices) {
-        transformed.push_back(
-            Shape::transformPoint(v.first, v.second, globalMat));
+        int x, y;
+        Shape::transformPoint(v.first, v.second, globalMat, x, y);
+        transformed.push_back({x, y});
     }
     return transformed;
 }
@@ -31,30 +33,67 @@ void Polygon::getInsidePoints(
         maxY = std::max(maxY, v.second);
     }
 
+    minY = std::max(0, minY);
+    maxY = std::min(displayGrid.height - 1, maxY);
+
+    uint8_t finalAlpha = color.a;
+    if (finalAlpha == 0)
+        return;
+    uint32_t invAlpha = 255 - finalAlpha;
+    uint32_t r = color.r;
+    uint32_t g = color.g;
+    uint32_t b = color.b;
+    bool hasTexture = (texture != nullptr);
+
+    std::vector<int> nodes;
+    nodes.reserve(16);
+
+    size_t n = vertices.size();
+
     for (int y = minY; y <= maxY; y++) {
-        std::vector<int> nodes;
-        for (size_t i = 0; i < vertices.size(); i++) {
-            size_t j = (i + 1) % vertices.size();
-            if ((vertices[i].second < y && vertices[j].second >= y) ||
-                (vertices[j].second < y && vertices[i].second >= y)) {
-                nodes.push_back(vertices[i].first +
-                                (y - vertices[i].second) *
-                                    (vertices[j].first - vertices[i].first) /
-                                    (vertices[j].second - vertices[i].second));
+        nodes.clear();
+
+        for (size_t i = 0; i < n; i++) {
+            size_t j = (i + 1) % n;
+            int xi = vertices[i].first, yi = vertices[i].second;
+            int xj = vertices[j].first, yj = vertices[j].second;
+
+            if ((yi < y && yj >= y) || (yj < y && yi >= y)) {
+                nodes.push_back(xi + (y - yi) * (xj - xi) / (yj - yi));
             }
         }
+
         std::sort(nodes.begin(), nodes.end());
 
-        for (size_t i = 0; i < nodes.size(); i += 2) {
-            if (i + 1 >= nodes.size())
-                break;
-            for (int x = nodes[i]; x <= nodes[i + 1]; x++) {
-                setPixelSafe(displayGrid, x, y, sampleTexture(x, y));
+        for (size_t k = 0; k + 1 < nodes.size(); k += 2) {
+            int startX = std::max(0, nodes[k]);
+            int endX = std::min(displayGrid.width - 1, nodes[k + 1]);
+
+            if (startX > endX)
+                continue;
+
+            if (!hasTexture) {
+                int index = y * displayGrid.width + startX;
+                Color *targetPixel = &displayGrid.pixels[index];
+
+                for (int x = startX; x <= endX; x++) {
+                    targetPixel->r =
+                        (r * finalAlpha + targetPixel->r * invAlpha) >> 8;
+                    targetPixel->g =
+                        (g * finalAlpha + targetPixel->g * invAlpha) >> 8;
+                    targetPixel->b =
+                        (b * finalAlpha + targetPixel->b * invAlpha) >> 8;
+                    targetPixel->a = 255;
+                    targetPixel++;
+                }
+            } else {
+                for (int x = startX; x <= endX; x++) {
+                    addPixel(displayGrid, x, y, 1.0f);
+                }
             }
         }
     }
 }
-
 void Polygon::drawAliased(Display &displayGrid) {
     auto transformedVertices = getTransformedVertices();
 

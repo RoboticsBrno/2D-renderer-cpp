@@ -5,11 +5,9 @@ Point::Point(const ShapeParams &params) : Shape(params) {}
 Collider *Point::defaultCollider() { return new PointCollider(x, y); }
 
 void Point::drawAntiAliased(Display &displayGrid) {
-    Color sampledColor = sampleTexture(x, y);
-    setPixelSafe(displayGrid, x, y, sampledColor);
+    addPixel(displayGrid, x, y, 255);
 }
 
 void Point::drawAliased(Display &displayGrid) {
-    Color sampledColor = sampleTexture(x, y);
-    setPixelSafe(displayGrid, x, y, sampledColor);
+    addPixel(displayGrid, x, y, 255);
 }

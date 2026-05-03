@@ -32,6 +32,9 @@ class RegularPolygon : public Shape {
     int radius;
     bool fill;
 
+    std::vector<std::pair<float, float>> localVertices;
+    bool localVerticesValid = false;
+
   public:
     RegularPolygon(const RegularPolygonSideParams &params);
     RegularPolygon(const RegularPolygonRadiusParams &params);
@@ -50,4 +53,5 @@ class RegularPolygon : public Shape {
     std::vector<LineSegment *> getSegments();
     void getInsidePoints(Display &displayGrid,
                          const std::vector<std::pair<int, int>> &vertices);
+    void updateLocalVertices();
 };

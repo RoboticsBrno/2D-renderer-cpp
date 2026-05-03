@@ -4,16 +4,16 @@
 #include <memory>
 #include <vector>
 
-Renderer::Renderer(int width, int height, const Color &backgroundColor)
-    : width(width), height(height), backgroundColor(backgroundColor) {
+Renderer::Renderer(int width, int height) : width(width), height(height) {
     displayGrid.width = width;
     displayGrid.height = height;
-    displayGrid.pixels.resize(width * height, backgroundColor);
+    displayGrid.pixels.resize(width * height, Color());
 }
 
 void Renderer::clear() {
-    std::fill(displayGrid.pixels.begin(), displayGrid.pixels.end(),
-              backgroundColor);
+    size_t bytesToClear =
+        displayGrid.width * displayGrid.height * sizeof(Color);
+    std::memset(displayGrid.pixels.data(), 0, bytesToClear);
 }
 
 void Renderer::render(

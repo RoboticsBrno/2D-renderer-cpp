@@ -2,6 +2,7 @@
 #include "Shapes/Collection.hpp"
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <memory>
 
 Matrix2D multiplyMatrices(const Matrix2D &m1, const Matrix2D &m2) {
@@ -16,9 +17,10 @@ Matrix2D multiplyMatrices(const Matrix2D &m1, const Matrix2D &m2) {
 }
 
 Matrix2D Shape::getLocalMatrix() {
-    float angleRad = rotation.angle * M_PI / 180.0f;
-    float c = std::cos(angleRad);
-    float s = std::sin(angleRad);
+    updateTrigCache();
+
+    float c = cosAngle;
+    float s = sinAngle;
 
     float px = static_cast<float>(rotation.x);
     float py = static_cast<float>(rotation.y);
@@ -35,46 +37,38 @@ Matrix2D Shape::getLocalMatrix() {
     return m;
 }
 
-std::pair<int, int> Shape::transformPoint(int x, int y, const Matrix2D &m) {
-    float tx = x * m.a + y * m.c + m.e;
-    float ty = x * m.b + y * m.d + m.f;
-    return {static_cast<int>(std::round(tx)), static_cast<int>(std::round(ty))};
-}
-
 Matrix2D Shape::getGlobalMatrix() {
-    std::vector<Shape *> hierarchy;
-    Shape *current = this;
-    while (current != nullptr) {
-        hierarchy.push_back(current);
-        current = current->getParent();
+    if (!isDirty) {
+        return cachedGlobalMatrix;
     }
 
-    Matrix2D globalMat = {1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f};
-    for (auto it = hierarchy.rbegin(); it != hierarchy.rend(); ++it) {
-        Matrix2D localMat = (*it)->getLocalMatrix();
-        globalMat = multiplyMatrices(globalMat, localMat);
+    Matrix2D localMat = getLocalMatrix();
+
+    if (parent != nullptr) {
+        cachedGlobalMatrix =
+            multiplyMatrices(parent->getGlobalMatrix(), localMat);
+    } else {
+        cachedGlobalMatrix = localMat;
     }
 
-    return globalMat;
+    isDirty = false;
+    return cachedGlobalMatrix;
 }
 
 void Shape::getUVAt(int x, int y, float &outU, float &outV) {
-    float localPivotX = (float)rotation.x - this->x;
-    float localPivotY = (float)rotation.y - this->y;
-
-    auto screenPivot = getTransformedPosition(localPivotX, localPivotY);
-
-    float dx = (float)x - screenPivot.first;
-    float dy = (float)y - screenPivot.second;
+    float dx = static_cast<float>(x) - currentScreenPivotX;
+    float dy = static_cast<float>(y) - currentScreenPivotY;
 
     float localX = dx;
     float localY = dy;
 
     if (fixTexture && rotation.angle != 0) {
-        updateTrigCache();
         localX = dx * cosAngle - dy * sinAngle;
         localY = dx * sinAngle + dy * cosAngle;
     }
+
+    float localPivotX = static_cast<float>(rotation.x) - this->x;
+    float localPivotY = static_cast<float>(rotation.y) - this->y;
 
     float finalU = localX + localPivotX;
     float finalV = localY + localPivotY;
@@ -83,7 +77,6 @@ void Shape::getUVAt(int x, int y, float &outU, float &outV) {
     float v = finalV * uvTransform.invScaleY + uvTransform.offsetY;
 
     if (uvTransform.rotation != 0) {
-        updateTextureTrigCache();
         float texTranslatedU = u - 0.5f;
         float texTranslatedV = v - 0.5f;
         u = texTranslatedU * texCos - texTranslatedV * texSin + 0.5f;
@@ -124,6 +117,75 @@ void Shape::updateTextureTrigCache() {
     }
 }
 
+void Shape::updateTextureMatrix() {
+    if (!texture)
+        return;
+
+    float invA = 1.0f, invB = 0.0f, invC = 0.0f;
+    float invD = 0.0f, invE = 1.0f, invF = 0.0f;
+
+    if (fixTexture) {
+        Matrix2D g = getGlobalMatrix();
+        float det = g.a * g.d - g.b * g.c;
+
+        if (std::abs(det) > 0.0001f) {
+            float invDet = 1.0f / det;
+            invA = g.d * invDet;
+            invB = -g.c * invDet;
+            invC = (g.c * g.f - g.d * g.e) * invDet;
+
+            invD = -g.b * invDet;
+            invE = g.a * invDet;
+            invF = (g.b * g.e - g.a * g.f) * invDet;
+        }
+    } else {
+        float localPivotX = static_cast<float>(rotation.x) - this->x;
+        float localPivotY = static_cast<float>(rotation.y) - this->y;
+
+        invA = 1.0f;
+        invB = 0.0f;
+        invC = -currentScreenPivotX + localPivotX;
+
+        invD = 0.0f;
+        invE = 1.0f;
+        invF = -currentScreenPivotY + localPivotY;
+    }
+
+    float uA = invA * uvTransform.invScaleX;
+    float uB = invB * uvTransform.invScaleX;
+    float uC = invC * uvTransform.invScaleX + uvTransform.offsetX;
+
+    float vD = invD * uvTransform.invScaleY;
+    float vE = invE * uvTransform.invScaleY;
+    float vF = invF * uvTransform.invScaleY + uvTransform.offsetY;
+
+    if (uvTransform.rotation != 0) {
+        uC -= 0.5f;
+        vF -= 0.5f;
+
+        float tmpA = uA * texCos - vD * texSin;
+        float tmpB = uB * texCos - vE * texSin;
+        float tmpC = uC * texCos - vF * texSin;
+
+        vD = uA * texSin + vD * texCos;
+        vE = uB * texSin + vE * texCos;
+        vF = uC * texSin + vF * texCos;
+
+        uA = tmpA;
+        uB = tmpB;
+        uC = tmpC;
+
+        uC += 0.5f;
+        vF += 0.5f;
+    }
+
+    tex_A = uA;
+    tex_B = uB;
+    tex_C = uC;
+    tex_D = vD;
+    tex_E = vE;
+    tex_F = vF;
+}
 // Collider methods
 void Shape::addCollider(Collider *collider) {
     if (collider) {
@@ -151,6 +213,7 @@ bool Shape::intersects(const std::shared_ptr<Shape> &other) {
 void Shape::setPosition(int x, int y) {
     this->x = x;
     this->y = y;
+    markDirty();
     if (collider) {
         collider->setPosition(x, y);
     }
@@ -159,6 +222,8 @@ void Shape::setPosition(int x, int y) {
 void Shape::translate(int dx, int dy) {
     x += dx;
     y += dy;
+
+    markDirty();
     if (collider) {
         collider->translate(dx, dy);
     }
@@ -167,6 +232,8 @@ void Shape::translate(int dx, int dy) {
 void Shape::translate(float dx, float dy) {
     x += dx;
     y += dy;
+
+    markDirty();
     if (collider) {
         collider->translate(dx, dy);
     }
@@ -175,6 +242,8 @@ void Shape::translate(float dx, float dy) {
 void Shape::rotate(float angle) {
     rotation.angle = std::fmod(rotation.angle + angle, 360.0f);
     invalidateTrigCache();
+    markDirty();
+
     if (this->collider) {
         this->collider->rotate(angle);
     }
@@ -183,6 +252,8 @@ void Shape::rotate(float angle) {
 void Shape::setPivot(int x, int y) {
     rotation.x = x;
     rotation.y = y;
+
+    markDirty();
 }
 
 void Shape::setZ(int z) { this->z = z; }
@@ -195,21 +266,26 @@ void Shape::setScale(float scaleX, float scaleY, float originX, float originY) {
         scale.originX = originX;
     if (originY != -1)
         scale.originY = originY;
+
+    markDirty();
 }
 
 void Shape::scaleX(float scaleX, float originX) {
     scale.x = scaleX;
+    markDirty();
     if (originX != -1)
         scale.originX = originX;
 }
 
 void Shape::scaleY(float scaleY, float originY) {
     scale.y = scaleY;
+    markDirty();
     if (originY != -1)
         scale.originY = originY;
 }
 
 void Shape::setScaleOrigin(int x, int y) {
+    markDirty();
     scale.originX = x;
     scale.originY = y;
 }
@@ -240,38 +316,16 @@ Color Shape::sampleTexture(int x, int y) {
     if (!texture)
         return color;
 
-    float localPivotX = (float)rotation.x - this->x;
-    float localPivotY = (float)rotation.y - this->y;
+    float u = tex_A * x + tex_B * y + tex_C;
+    float v = tex_D * x + tex_E * y + tex_F;
 
-    auto screenPivot = getTransformedPosition(localPivotX, localPivotY);
+    int texU = static_cast<int>(std::round(u));
+    int texV = static_cast<int>(std::round(v));
 
-    float dx = (float)x - screenPivot.first;
-    float dy = (float)y - screenPivot.second;
+    Color texColor = texture->sample(texU, texV);
 
-    float localX = dx;
-    float localY = dy;
+    texColor.a = (texColor.a * color.a) >> 8;
 
-    if (fixTexture && rotation.angle != 0) {
-        updateTrigCache();
-        localX = dx * cosAngle - dy * sinAngle;
-        localY = dx * sinAngle + dy * cosAngle;
-    }
-
-    int u = static_cast<int>((localX + localPivotX) * uvTransform.invScaleX +
-                             uvTransform.offsetX + 0.5f);
-    int v = static_cast<int>((localY + localPivotY) * uvTransform.invScaleY +
-                             uvTransform.offsetY + 0.5f);
-
-    if (uvTransform.rotation != 0) {
-        updateTextureTrigCache();
-        float tu = u - 0.5f;
-        float tv = v - 0.5f;
-        u = static_cast<int>(tu * texCos - tv * texSin + 0.5f);
-        v = static_cast<int>(tu * texSin + tv * texCos + 0.5f);
-    }
-
-    Color texColor = texture->sample(u, v);
-    texColor.a *= color.a;
     return texColor;
 }
 
@@ -279,64 +333,67 @@ Color Shape::sampleTexture(int x, int y) {
 void Shape::setParent(Shape *parent) { this->parent = parent; }
 
 // Transformation and coordinate methods
+void Shape::transformPoint(int x, int y, const Matrix2D &m, int &outX,
+                           int &outY) {
+    float tx = x * m.a + y * m.c + m.e;
+    float ty = x * m.b + y * m.d + m.f;
+
+    outX = static_cast<int>(tx + (tx >= 0.0f ? 0.5f : -0.5f));
+    outY = static_cast<int>(ty + (ty >= 0.0f ? 0.5f : -0.5f));
+}
+
 std::pair<int, int> Shape::getTransformedPosition(int inputX, int inputY) {
     Matrix2D globalMat = getGlobalMatrix();
-
-    return transformPoint(inputX, inputY, globalMat);
+    int outX, outY;
+    transformPoint(inputX, inputY, globalMat, outX, outY);
+    return {outX, outY};
 }
 
-void Shape::setPixelSafe(Display &displayGrid, int x, int y, const Color &c) {
-    if (x >= 0 && x < displayGrid.width && y >= 0 && y < displayGrid.height) {
-        displayGrid.pixels[y * displayGrid.width + x] = c;
-    }
-}
-
-// Drawing methods
 void Shape::draw(Display &displayGrid, const DrawOptions &options) {
+    float localPivotX = (float)rotation.x - this->x;
+    float localPivotY = (float)rotation.y - this->y;
+    auto pivotInt = getTransformedPosition(localPivotX, localPivotY);
+
+    currentScreenPivotX = static_cast<float>(pivotInt.first);
+    currentScreenPivotY = static_cast<float>(pivotInt.second);
+
+    if (texture) {
+        updateTextureMatrix();
+    }
+
     options.antialias ? drawAntiAliased(displayGrid) : drawAliased(displayGrid);
 }
 
 // Line drawing algorithms
 void Shape::bresenhamLine(Display &displayGrid, int x0, int y0, int x1,
                           int y1) {
-    int dx = std::abs(x1 - x0);
-    int dy = std::abs(y1 - y0);
-    int sx = (x0 < x1) ? 1 : -1;
-    int sy = (y0 < y1) ? 1 : -1;
-    int err = dx - dy;
+    int dx = std::abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+    int dy = -std::abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+    int err = dx + dy, e2;
 
-    int x = x0;
-    int y = y0;
+    while (true) {
+        addPixel(displayGrid, x0, y0, 1.0f);
 
-    Color sampledColor = texture ? sampleTexture(x, y) : color;
-    setPixelSafe(displayGrid, x, y, sampledColor);
-
-    while (x != x1 || y != y1) {
-        int e2 = err * 2;
-
-        if (e2 > -dy) {
-            err -= dy;
-            x += sx;
+        if (x0 == x1 && y0 == y1)
+            break;
+        e2 = 2 * err;
+        if (e2 >= dy) {
+            err += dy;
+            x0 += sx;
         }
-
-        if (e2 < dx) {
+        if (e2 <= dx) {
             err += dx;
-            y += sy;
+            y0 += sy;
         }
-
-        if (texture) {
-            sampledColor = sampleTexture(x, y);
-        }
-        setPixelSafe(displayGrid, x, y, sampledColor);
     }
 }
 
 void Shape::wuLine(Display &points, int x0_int, int y0_int, int x1_int,
                    int y1_int) {
-    float x0 = static_cast<float>(x0_int);
-    float y0 = static_cast<float>(y0_int);
-    float x1 = static_cast<float>(x1_int);
-    float y1 = static_cast<float>(y1_int);
+    int x0 = x0_int;
+    int y0 = y0_int;
+    int x1 = x1_int;
+    int y1 = y1_int;
 
     bool steep = std::abs(y1 - y0) > std::abs(x1 - x0);
 
@@ -344,133 +401,255 @@ void Shape::wuLine(Display &points, int x0_int, int y0_int, int x1_int,
         std::swap(x0, y0);
         std::swap(x1, y1);
     }
-
     if (x0 > x1) {
         std::swap(x0, x1);
         std::swap(y0, y1);
     }
 
-    const float dx = x1 - x0;
-    const float dy = y1 - y0;
-    const float gradient = (dx == 0) ? 1.0f : dy / dx;
+    int dx = x1 - x0;
+    int dy = y1 - y0;
 
-    const float x0_plus_half = x0 + 0.5f;
-    const float x1_plus_half = x1 + 0.5f;
-
-    int xpxl1 = static_cast<int>(std::round(x0));
-    float yend = y0 + gradient * (xpxl1 - x0);
-    float xgap =
-        1.0f - (x0_plus_half - std::floor(x0_plus_half)); // rfpart(x0 + 0.5f)
-
-    int ypxl1 = static_cast<int>(std::floor(yend));
-    float yend_fpart = yend - ypxl1;
-    float yend_rfpart = 1.0f - yend_fpart;
-
-    if (steep) {
-        addPixel(points, ypxl1, xpxl1, yend_rfpart * xgap);
-        addPixel(points, ypxl1 + 1, xpxl1, yend_fpart * xgap);
-    } else {
-        addPixel(points, xpxl1, ypxl1, yend_rfpart * xgap);
-        addPixel(points, xpxl1, ypxl1 + 1, yend_fpart * xgap);
+    if (dx == 0) {
+        if (x0_int >= 0 && x0_int < points.width && y0_int >= 0 &&
+            y0_int < points.height) {
+            points.pixels[y0_int * points.width + x0_int] = color;
+        }
+        return;
     }
 
-    float intery = yend + gradient;
+    int32_t gradient_fp =
+        static_cast<int32_t>((static_cast<int64_t>(dy) << 16) / dx);
+    int32_t intery_fp = y0 << 16;
 
-    int xpxl2 = static_cast<int>(std::round(x1));
-    yend = y1 + gradient * (xpxl2 - x1);
-    xgap = x1_plus_half - std::floor(x1_plus_half); // fpart(x1 + 0.5f)
-
-    int ypxl2 = static_cast<int>(std::floor(yend));
-    yend_fpart = yend - ypxl2;
-    yend_rfpart = 1.0f - yend_fpart;
+    int width = points.width;
+    int height = points.height;
 
     if (steep) {
-        addPixel(points, ypxl2, xpxl2, yend_rfpart * xgap);
-        addPixel(points, ypxl2 + 1, xpxl2, yend_fpart * xgap);
-    } else {
-        addPixel(points, xpxl2, ypxl2, yend_rfpart * xgap);
-        addPixel(points, xpxl2, ypxl2 + 1, yend_fpart * xgap);
-    }
+        for (int x = x0; x <= x1; x++) {
+            if (x < 0 || x >= height) {
+                intery_fp += gradient_fp;
+                continue;
+            }
 
-    if (steep) {
-        for (int x = xpxl1 + 1; x < xpxl2; x++) {
-            int y_base = static_cast<int>(std::floor(intery));
-            float intery_fpart = intery - y_base;
-            float intery_rfpart = 1.0f - intery_fpart;
+            int y_base = intery_fp >> 16;
+            uint8_t fraction = (intery_fp & 0xFFFF) >> 8;
+            uint8_t inv_fraction = 255 - fraction;
 
-            addPixel(points, y_base, x, intery_rfpart);
-            addPixel(points, y_base + 1, x, intery_fpart);
-            intery += gradient;
+            int rowIndex = x * width;
+
+            if (y_base >= 0 && y_base < width) {
+                Color src1 = this->sampleTexture(y_base, x);
+
+                Color *p1 = &points.pixels[rowIndex + y_base];
+                p1->r = (src1.r * inv_fraction + p1->r * fraction) >> 8;
+                p1->g = (src1.g * inv_fraction + p1->g * fraction) >> 8;
+                p1->b = (src1.b * inv_fraction + p1->b * fraction) >> 8;
+                p1->a = 255;
+            }
+
+            if (y_base + 1 >= 0 && y_base + 1 < width) {
+                Color src2 = this->sampleTexture(y_base + 1, x);
+
+                Color *p2 = &points.pixels[rowIndex + y_base + 1];
+                p2->r = (src2.r * fraction + p2->r * inv_fraction) >> 8;
+                p2->g = (src2.g * fraction + p2->g * inv_fraction) >> 8;
+                p2->b = (src2.b * fraction + p2->b * inv_fraction) >> 8;
+                p2->a = 255;
+            }
+
+            intery_fp += gradient_fp;
         }
     } else {
-        for (int x = xpxl1 + 1; x < xpxl2; x++) {
-            int y_base = static_cast<int>(std::floor(intery));
-            float intery_fpart = intery - y_base;
-            float intery_rfpart = 1.0f - intery_fpart;
+        int startX = std::max(0, x0);
+        int endX = std::min(width - 1, x1);
 
-            addPixel(points, x, y_base, intery_rfpart);
-            addPixel(points, x, y_base + 1, intery_fpart);
-            intery += gradient;
+        if (startX > x0) {
+            intery_fp += gradient_fp * (startX - x0);
+        }
+
+        for (int x = startX; x <= endX; x++) {
+            int y_base = intery_fp >> 16;
+            uint8_t fraction = (intery_fp & 0xFFFF) >> 8;
+            uint8_t inv_fraction = 255 - fraction;
+
+            if (y_base >= 0 && y_base < height) {
+                Color src1 = this->sampleTexture(x, y_base);
+
+                Color *p1 = &points.pixels[y_base * width + x];
+                p1->r = (src1.r * inv_fraction + p1->r * fraction) >> 8;
+                p1->g = (src1.g * inv_fraction + p1->g * fraction) >> 8;
+                p1->b = (src1.b * inv_fraction + p1->b * fraction) >> 8;
+                p1->a = 255;
+            }
+
+            if (y_base + 1 >= 0 && y_base + 1 < height) {
+                Color src2 = this->sampleTexture(x, y_base + 1);
+
+                Color *p2 = &points.pixels[(y_base + 1) * width + x];
+                p2->r = (src2.r * fraction + p2->r * inv_fraction) >> 8;
+                p2->g = (src2.g * fraction + p2->g * inv_fraction) >> 8;
+                p2->b = (src2.b * fraction + p2->b * inv_fraction) >> 8;
+                p2->a = 255;
+            }
+
+            intery_fp += gradient_fp;
         }
     }
 }
 
 // Pixel manipulation
 void Shape::addPixel(Display &displayGrid, int x, int y, float alpha) {
-    if (alpha <= 0.005f)
+    if (alpha <= 0.0f)
         return;
 
-    float finalAlpha = alpha * color.a;
-    Color pixelColor;
+    if (static_cast<unsigned>(x) >= static_cast<unsigned>(displayGrid.width) ||
+        static_cast<unsigned>(y) >= static_cast<unsigned>(displayGrid.height)) {
+        return;
+    }
+
+    uint8_t finalAlpha = static_cast<uint8_t>(alpha * color.a);
+    if (finalAlpha == 0)
+        return;
+    uint32_t invAlpha = 255 - finalAlpha;
+
+    int index = y * displayGrid.width + x;
+    Color *targetPixel = &displayGrid.pixels[index];
 
     if (!texture) {
-        pixelColor = Color(color.r, color.g, color.b, finalAlpha);
+        targetPixel->r =
+            (color.r * finalAlpha + targetPixel->r * invAlpha) >> 8;
+        targetPixel->g =
+            (color.g * finalAlpha + targetPixel->g * invAlpha) >> 8;
+        targetPixel->b =
+            (color.b * finalAlpha + targetPixel->b * invAlpha) >> 8;
     } else {
         Color texColor = sampleTexture(x, y);
-        pixelColor =
-            Color(texColor.r, texColor.g, texColor.b, finalAlpha * texColor.a);
+        uint32_t texAlpha = (finalAlpha * texColor.a) >> 8;
+        uint32_t invTexAlpha = 255 - texAlpha;
+
+        targetPixel->r =
+            (texColor.r * texAlpha + targetPixel->r * invTexAlpha) >> 8;
+        targetPixel->g =
+            (texColor.g * texAlpha + targetPixel->g * invTexAlpha) >> 8;
+        targetPixel->b =
+            (texColor.b * texAlpha + targetPixel->b * invTexAlpha) >> 8;
     }
 
-    if (pixelColor.a > 0.005f) {
-        setPixelSafe(displayGrid, x, y, pixelColor);
-    }
+    targetPixel->a = 255;
 }
 
 // Fill algorithms
 void Shape::getInsidePoints(Display &displayGrid,
                             const std::vector<std::pair<int, int>> &vertices) {
-    if (vertices.empty())
+    if (vertices.size() < 3)
         return;
 
-    int minX = vertices[0].first;
-    int maxX = vertices[0].first;
     int minY = vertices[0].second;
     int maxY = vertices[0].second;
 
     for (const auto &v : vertices) {
-        minX = std::min(minX, v.first);
-        maxX = std::max(maxX, v.first);
         minY = std::min(minY, v.second);
         maxY = std::max(maxY, v.second);
     }
 
-    for (int x = minX; x <= maxX; x++) {
-        for (int y = minY; y <= maxY; y++) {
-            bool inside = false;
-            size_t n = vertices.size();
-            for (size_t i = 0, j = n - 1; i < n; j = i++) {
-                int xi = vertices[i].first, yi = vertices[i].second;
-                int xj = vertices[j].first, yj = vertices[j].second;
+    minY = std::max(0, minY);
+    maxY = std::min(displayGrid.height - 1, maxY);
 
-                bool intersect = ((yi > y) != (yj > y)) &&
-                                 (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-                if (intersect)
-                    inside = !inside;
+    uint8_t finalAlpha = color.a;
+    if (finalAlpha == 0)
+        return;
+    uint32_t invAlpha = 255 - finalAlpha;
+
+    uint32_t r = color.r;
+    uint32_t g = color.g;
+    uint32_t b = color.b;
+
+    bool hasTexture = (texture != nullptr);
+
+    if (hasTexture) {
+        if (fixTexture && rotation.angle != 0)
+            updateTrigCache();
+        if (uvTransform.rotation != 0)
+            updateTextureTrigCache();
+    }
+    int intersections[16];
+
+    for (int y = minY; y <= maxY; ++y) {
+        int count = 0;
+        size_t n = vertices.size();
+
+        for (size_t i = 0, j = n - 1; i < n; j = i++) {
+            int xi = vertices[i].first, yi = vertices[i].second;
+            int xj = vertices[j].first, yj = vertices[j].second;
+
+            if ((yi < y && yj >= y) || (yj < y && yi >= y)) {
+                intersections[count++] = xi + (y - yi) * (xj - xi) / (yj - yi);
             }
+        }
 
-            if (inside) {
-                Color c = texture ? sampleTexture(x, y) : color;
-                setPixelSafe(displayGrid, x, y, c);
+        if (count == 0)
+            continue;
+
+        if (count == 2) {
+            if (intersections[0] > intersections[1]) {
+                int temp = intersections[0];
+                intersections[0] = intersections[1];
+                intersections[1] = temp;
+            }
+        } else if (count > 2) {
+            std::sort(intersections, intersections + count);
+        }
+
+        for (int i = 0; i + 1 < count; i += 2) {
+            int xStart = std::max(0, intersections[i]);
+            int xEnd = std::min(displayGrid.width - 1, intersections[i + 1]);
+
+            if (xStart > xEnd)
+                continue;
+
+            int index = y * displayGrid.width + xStart;
+            Color *targetPixel = &displayGrid.pixels[index];
+
+            if (!hasTexture) {
+                for (int x = xStart; x <= xEnd; ++x) {
+                    targetPixel->r =
+                        (r * finalAlpha + targetPixel->r * invAlpha) >> 8;
+                    targetPixel->g =
+                        (g * finalAlpha + targetPixel->g * invAlpha) >> 8;
+                    targetPixel->b =
+                        (b * finalAlpha + targetPixel->b * invAlpha) >> 8;
+                    targetPixel->a = 255;
+                    targetPixel++;
+                }
+            } else {
+                float cur_u = tex_A * xStart + tex_B * y + tex_C;
+                float cur_v = tex_D * xStart + tex_E * y + tex_F;
+
+                for (int x = xStart; x <= xEnd; ++x) {
+                    int u = static_cast<int>(cur_u + 0.5f);
+                    int v = static_cast<int>(cur_v + 0.5f);
+
+                    Color texColor = texture->sample(u, v);
+
+                    uint32_t sampledAlpha = (texColor.a * color.a) >> 8;
+                    uint32_t texAlpha = (finalAlpha * sampledAlpha) >> 8;
+                    uint32_t invTexAlpha = 255 - texAlpha;
+
+                    targetPixel->r = (texColor.r * texAlpha +
+                                      targetPixel->r * invTexAlpha) >>
+                                     8;
+                    targetPixel->g = (texColor.g * texAlpha +
+                                      targetPixel->g * invTexAlpha) >>
+                                     8;
+                    targetPixel->b = (texColor.b * texAlpha +
+                                      targetPixel->b * invTexAlpha) >>
+                                     8;
+                    targetPixel->a = 255;
+                    targetPixel++;
+
+                    cur_u += tex_A;
+                    cur_v += tex_D;
+                }
             }
         }
     }

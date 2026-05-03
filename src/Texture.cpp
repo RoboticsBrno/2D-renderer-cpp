@@ -10,11 +10,10 @@ namespace fs = std::filesystem;
 
 static const char *TAG = "Texture";
 
-Texture::Texture(const std::vector<std::vector<Color>> &pixels)
-    : pixels(pixels), wrapMode("repeat"), valid(true) {
-    this->height = pixels.size();
-    this->width = (height > 0) ? pixels[0].size() : 0;
-}
+Texture::Texture(const std::vector<Color, PsramAllocator<Color>> &pixels,
+                 int width, int height)
+    : pixels(pixels), width(width), height(height), wrapMode("repeat"),
+      valid(true) {}
 
 Texture::Texture() : width(0), height(0), wrapMode("repeat"), valid(false) {}
 
@@ -120,14 +119,13 @@ bool Texture::fromBMP(const std::string &filename, Texture &outTexture,
         return false;
     }
 
-    std::vector<std::vector<Color>> pixels;
+    std::vector<Color, PsramAllocator<Color>> pixels;
+    pixels.resize(width * height);
 
     if (bitsPerPixel == 24) {
         int bytesPerRow = ((width * 3 + 3) / 4) * 4;
 
-        pixels.resize(height);
         for (int y = 0; y < height; y++) {
-            pixels[y].resize(width);
             for (int x = 0; x < width; x++) {
                 size_t offset =
                     pixelDataOffset + (height - 1 - y) * bytesPerRow + x * 3;
@@ -140,13 +138,11 @@ bool Texture::fromBMP(const std::string &filename, Texture &outTexture,
                 uint8_t b = data[offset];
                 uint8_t g = data[offset + 1];
                 uint8_t r = data[offset + 2];
-                pixels[y][x] = Color(r, g, b, 1.0f);
+                pixels[y * width + x] = Color(r, g, b, 255);
             }
         }
     } else if (bitsPerPixel == 32) {
-        pixels.resize(height);
         for (int y = 0; y < height; y++) {
-            pixels[y].resize(width);
             for (int x = 0; x < width; x++) {
                 size_t offset =
                     pixelDataOffset + (height - 1 - y) * width * 4 + x * 4;
@@ -160,7 +156,7 @@ bool Texture::fromBMP(const std::string &filename, Texture &outTexture,
                 uint8_t g = data[offset + 1];
                 uint8_t r = data[offset + 2];
                 uint8_t a = data[offset + 3];
-                pixels[y][x] = Color(r, g, b, a / 255.0f);
+                pixels[y * width + x] = Color(r, g, b, a);
             }
         }
     } else {
@@ -169,21 +165,21 @@ bool Texture::fromBMP(const std::string &filename, Texture &outTexture,
         return false;
     }
 
-    outTexture = Texture(pixels);
+    outTexture = Texture(pixels, width, height);
     ESP_LOGI(TAG, "Texture loaded successfully");
     return true;
 }
 
 Color Texture::sample(int u, int v) const {
     if (!valid || pixels.empty() || width == 0 || height == 0) {
-        return Color(0, 0, 0, 1.0f);
+        return Color(0, 0, 0, 255);
     }
     int x = u;
     int y = v;
 
     if (wrapMode == "repeat") {
         if (u >= 0 && u < width && v >= 0 && v < height) {
-            return pixels[y][x];
+            return pixels[y * width + x];
         } else {
             x = u % width;
             y = v % height;
@@ -198,9 +194,9 @@ Color Texture::sample(int u, int v) const {
     }
 
     if (y >= 0 && y < height && x >= 0 && x < width) {
-        return pixels[y][x];
+        return pixels[y * width + x];
     }
-    return Color(0, 0, 0, 1.0f);
+    return Color(0, 0, 0, 255);
 }
 
 void Texture::setWrapMode(const std::string &mode) {

@@ -20,29 +20,21 @@ void Circle::drawCirclePoints(Display &displayGrid, int cx, int cy, int x,
                               int y) {
     auto pointsToDraw = getPointsToDraw(cx, cy, x, y);
     for (const auto &point : pointsToDraw) {
-        Color sampledColor = sampleTexture(point.first, point.second);
-        setPixelSafe(displayGrid, static_cast<int>(std::round(point.first)),
-                     static_cast<int>(std::round(point.second)), sampledColor);
+        addPixel(displayGrid, static_cast<int>(std::round(point.first)),
+                 static_cast<int>(std::round(point.second)), 1.0f);
     }
 }
 
 void Circle::drawAntiAliasedPoint(Display &displayGrid, int cx, int cy, int x,
                                   int y, float intensity) {
-    auto pointsToDraw = getPointsToDraw(cx, cy, x, y);
-    for (const auto &point : pointsToDraw) {
-        int clampedX = point.first;
-        int clampedY = point.second;
-
-        if (intensity > 0.01f && clampedX >= 0 && clampedY >= 0) {
-            Color sampledColor = sampleTexture(point.first, point.second);
-
-            setPixelSafe(
-                displayGrid, clampedX, clampedY,
-                Color(sampledColor.r, sampledColor.g, sampledColor.b,
-                      std::max(0.0f,
-                               std::min(1.0f, intensity * sampledColor.a))));
-        }
-    }
+    addPixel(displayGrid, cx + x, cy + y, intensity);
+    addPixel(displayGrid, cx - x, cy + y, intensity);
+    addPixel(displayGrid, cx + x, cy - y, intensity);
+    addPixel(displayGrid, cx - x, cy - y, intensity);
+    addPixel(displayGrid, cx + y, cy + x, intensity);
+    addPixel(displayGrid, cx - y, cy + x, intensity);
+    addPixel(displayGrid, cx + y, cy - x, intensity);
+    addPixel(displayGrid, cx - y, cy - x, intensity);
 }
 
 void Circle::fillCircle(Display &displayGrid, int cx, int cy, int r) {
@@ -55,7 +47,7 @@ void Circle::fillCircle(Display &displayGrid, int cx, int cy, int r) {
         int screenY = cy + y;
 
         for (int x = startX; x <= endX; x++) {
-            setPixelSafe(displayGrid, x, screenY, sampleTexture(x, screenY));
+            addPixel(displayGrid, x, screenY, 1.0f);
         }
     }
 }
@@ -90,9 +82,10 @@ void Circle::drawAliased(Display &displayGrid) {
 // Helper for the inner loop
 void Circle::drawHorizontalLine(Display &displayGrid, int x1, int x2, int y) {
     for (int x = x1; x <= x2; x++) {
-        setPixelSafe(displayGrid, x, y, sampleTexture(x, y));
+        addPixel(displayGrid, x, y, 1.0f);
     }
 }
+
 void Circle::drawAntiAliased(Display &displayGrid) {
     auto center = getTransformedPosition(0, 0);
     int r = radius;

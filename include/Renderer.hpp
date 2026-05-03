@@ -10,12 +10,10 @@ class Renderer {
   private:
     int width;
     int height;
-    Color backgroundColor;
     Display displayGrid;
 
   public:
-    Renderer(int width, int height,
-             const Color &backgroundColor = Color(0, 0, 0, 1.0f));
+    Renderer(int width, int height);
 
     void render(const std::vector<std::shared_ptr<Collection>> &collections,
                 const DrawOptions &options);

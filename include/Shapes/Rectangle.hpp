@@ -1,5 +1,6 @@
 #pragma once
 #include "Shape.hpp"
+#include <array>
 
 struct RectangleParams : public ShapeParams {
     int width;
@@ -27,7 +28,7 @@ class Rectangle : public Shape {
     int getHeight() const { return height; }
 
   private:
-    std::vector<std::pair<int, int>> getVertices();
+    std::array<std::pair<int, int>, 4> getVertices();
     void getInsidePoints(Display &displayGrid,
-                         const std::vector<std::pair<int, int>> &vertices);
+                         const std::array<std::pair<int, int>, 4> &vertices);
 };
