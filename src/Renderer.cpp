@@ -80,7 +80,8 @@ void Renderer::drawText(const std::string &text, int x, int y, const Font &font,
             for (int col = 0; col < glyph->width; ++col) {
                 int bit_pos = 4 - (col + glyph->x_offset);
                 if (bit_pos >= 0 && (line & (1 << bit_pos))) {
-                    setPixel(currentX + col, currentY + row, color);
+                    setPixel(currentX + col, currentY + row + glyph->y_offset,
+                             color);
                 }
             }
         }

@@ -12,6 +12,7 @@ class Font {
         uint8_t height;
         uint8_t x_offset;
         const uint8_t *data;
+        int8_t y_offset = 0;
     };
 
     static const uint8_t FONT_DATA[];
