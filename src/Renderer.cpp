@@ -11,9 +11,7 @@ Renderer::Renderer(int width, int height) : width(width), height(height) {
 }
 
 void Renderer::clear() {
-    size_t bytesToClear =
-        displayGrid.width * displayGrid.height * sizeof(Color);
-    std::memset(displayGrid.pixels.data(), 0, bytesToClear);
+    std::fill(displayGrid.pixels.begin(), displayGrid.pixels.end(), Color());
 }
 
 void Renderer::render(
