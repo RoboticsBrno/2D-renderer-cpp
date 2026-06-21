@@ -100,6 +100,12 @@ class Shape {
     Shape(const ShapeParams &params);
     virtual ~Shape();
 
+    // Shapes own a raw Collider* that the destructor frees; copying would
+    // double-free it. Shapes are always managed through shared_ptr, so
+    // copy/move is disabled rather than implemented.
+    Shape(const Shape &) = delete;
+    Shape &operator=(const Shape &) = delete;
+
     Matrix2D getLocalMatrix();
     Matrix2D getGlobalMatrix();
 
@@ -127,6 +133,9 @@ class Shape {
     void setScaleOrigin(int x, int y);
 
     // Collider methods
+    // Takes ownership of `collider` (or of a heap-allocated defaultCollider()
+    // if null): it will be deleted by removeCollider(), a later addCollider()
+    // call, or the Shape's destructor. Never pass a pointer you still own.
     void addCollider(Collider *collider = nullptr);
     void removeCollider();
     bool intersects(const std::shared_ptr<Shape> &other);
