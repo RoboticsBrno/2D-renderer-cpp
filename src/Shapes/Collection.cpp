@@ -24,7 +24,7 @@ void Collection::addShape(std::shared_ptr<Shape> shape) {
     if (shape) {
         shape->setParent(this);
         shapes.push_back(shape);
-        this->isDirty = true;
+        this->needsSort = true;
     }
 }
 
@@ -33,7 +33,7 @@ void Collection::removeShape(std::shared_ptr<Shape> shape) {
     if (it != shapes.end()) {
         (*it)->setParent(nullptr);
         shapes.erase(it, shapes.end());
-        this->isDirty = true;
+        this->needsSort = true;
     }
 }
 
@@ -44,11 +44,11 @@ void Collection::clear() {
     }
     shapes.clear();
     cachedSortedShapes.clear();
-    this->isDirty = true;
+    this->needsSort = true;
 }
 
 void Collection::drawAliased(Display &displayGrid) {
-    if (this->isDirty) {
+    if (this->needsSort) {
         this->cachedSortedShapes = shapes;
         std::sort(this->cachedSortedShapes.begin(),
                   this->cachedSortedShapes.end(),
@@ -56,7 +56,7 @@ void Collection::drawAliased(Display &displayGrid) {
                      const std::shared_ptr<Shape> &b) {
                       return a->getZ() < b->getZ();
                   });
-        this->isDirty = false;
+        this->needsSort = false;
     }
 
     for (const auto &shape : this->cachedSortedShapes) {
@@ -66,7 +66,7 @@ void Collection::drawAliased(Display &displayGrid) {
 }
 
 void Collection::drawAntiAliased(Display &displayGrid) {
-    if (this->isDirty) {
+    if (this->needsSort) {
         this->cachedSortedShapes = shapes;
         std::sort(this->cachedSortedShapes.begin(),
                   this->cachedSortedShapes.end(),
@@ -74,7 +74,7 @@ void Collection::drawAntiAliased(Display &displayGrid) {
                      const std::shared_ptr<Shape> &b) {
                       return a->getZ() < b->getZ();
                   });
-        this->isDirty = false;
+        this->needsSort = false;
     }
 
     for (const auto &shape : this->cachedSortedShapes) {

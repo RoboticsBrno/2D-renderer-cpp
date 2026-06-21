@@ -23,6 +23,6 @@ class Collection : public Shape {
   private:
     std::vector<std::shared_ptr<Shape>> shapes;
 
-    bool isDirty = true;
+    bool needsSort = true;
     std::vector<std::shared_ptr<Shape>> cachedSortedShapes;
 };
