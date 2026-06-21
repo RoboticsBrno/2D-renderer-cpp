@@ -96,7 +96,7 @@ Shape::Shape(const ShapeParams &params)
     uvTransform = {1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f};
 }
 
-Shape::~Shape() {}
+Shape::~Shape() { delete collider; }
 
 // Cache management
 void Shape::updateTrigCache() {
@@ -188,11 +188,8 @@ void Shape::updateTextureMatrix() {
 }
 // Collider methods
 void Shape::addCollider(Collider *collider) {
-    if (collider) {
-        this->collider = collider;
-        return;
-    }
-    this->collider = defaultCollider();
+    delete this->collider;
+    this->collider = collider ? collider : defaultCollider();
 }
 
 void Shape::removeCollider() {
