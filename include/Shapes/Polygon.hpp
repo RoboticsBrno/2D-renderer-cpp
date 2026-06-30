@@ -20,7 +20,7 @@ class Polygon : public Shape {
 
   public:
     Polygon(const PolygonParams &params);
-    Collider *defaultCollider() override;
+    std::unique_ptr<Collider> defaultCollider() override;
     void drawAntiAliased(Display &displayGrid) override;
     void drawAliased(Display &displayGrid) override;
 

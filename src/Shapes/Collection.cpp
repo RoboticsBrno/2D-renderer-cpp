@@ -5,7 +5,9 @@ Collection::Collection(const ShapeParams &params) : Shape(params) {}
 
 Collection::~Collection() { clear(); }
 
-Collider *Collection::defaultCollider() { return new CircleCollider(0, 0, 0); }
+std::unique_ptr<Collider> Collection::defaultCollider() {
+    return std::make_unique<CircleCollider>(0, 0, 0);
+}
 
 void Collection::markDirty() {
     if (isDirty)

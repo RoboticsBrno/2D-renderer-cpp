@@ -1,11 +1,14 @@
 #include "Shapes/Circle.hpp"
 #include "Utils.hpp"
 #include <cmath>
+#include <memory>
 
 Circle::Circle(const CircleParams &params)
     : Shape(params), radius(params.radius), fill(params.fill) {}
 
-Collider *Circle::defaultCollider() { return new CircleCollider(x, y, radius); }
+std::unique_ptr<Collider> Circle::defaultCollider() {
+    return std::make_unique<CircleCollider>(x, y, radius);
+}
 
 int Circle::getRadius() const { return radius; }
 

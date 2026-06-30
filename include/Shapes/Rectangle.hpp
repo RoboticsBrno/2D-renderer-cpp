@@ -21,7 +21,7 @@ class Rectangle : public Shape {
 
   public:
     Rectangle(const RectangleParams &params);
-    Collider *defaultCollider() override;
+    std::unique_ptr<Collider> defaultCollider() override;
     void drawAntiAliased(Display &displayGrid) override;
     void drawAliased(Display &displayGrid) override;
     int getWidth() const { return width; }

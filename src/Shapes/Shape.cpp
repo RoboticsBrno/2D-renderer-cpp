@@ -96,7 +96,7 @@ Shape::Shape(const ShapeParams &params)
     uvTransform = {1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f};
 }
 
-Shape::~Shape() { delete collider; }
+Shape::~Shape() = default;
 
 // Cache management
 void Shape::updateTrigCache() {
@@ -187,21 +187,17 @@ void Shape::updateTextureMatrix() {
     tex_F = vF;
 }
 // Collider methods
-void Shape::addCollider(Collider *collider) {
-    delete this->collider;
-    this->collider = collider ? collider : defaultCollider();
+void Shape::addCollider(std::unique_ptr<Collider> collider) {
+    this->collider = collider ? std::move(collider) : defaultCollider();
 }
 
 void Shape::removeCollider() {
-    if (collider) {
-        delete collider;
-        collider = nullptr;
-    }
+    collider.reset();
 }
 
 bool Shape::intersects(const std::shared_ptr<Shape> &other) {
     if (this->collider && other && other->collider) {
-        return this->collider->intersects(other->collider);
+        return this->collider->intersects(other->collider.get());
     }
     return false;
 }

@@ -17,7 +17,7 @@ class LineSegment : public Shape {
 
   public:
     LineSegment(const LineSegmentParams &params);
-    Collider *defaultCollider() override;
+    std::unique_ptr<Collider> defaultCollider() override;
     void drawAntiAliased(Display &displayGrid) override;
     void drawAliased(Display &displayGrid) override;
 };

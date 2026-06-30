@@ -38,7 +38,7 @@ class RegularPolygon : public Shape {
   public:
     RegularPolygon(const RegularPolygonSideParams &params);
     RegularPolygon(const RegularPolygonRadiusParams &params);
-    Collider *defaultCollider() override;
+    std::unique_ptr<Collider> defaultCollider() override;
     void drawAntiAliased(Display &displayGrid) override;
     void drawAliased(Display &displayGrid) override;
     int getSides() const;

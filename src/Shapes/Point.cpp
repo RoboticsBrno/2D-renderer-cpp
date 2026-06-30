@@ -1,8 +1,11 @@
 #include "Shapes/Point.hpp"
+#include <memory>
 
 Point::Point(const ShapeParams &params) : Shape(params) {}
 
-Collider *Point::defaultCollider() { return new PointCollider(x, y); }
+std::unique_ptr<Collider> Point::defaultCollider() {
+    return std::make_unique<PointCollider>(x, y);
+}
 
 void Point::drawAntiAliased(Display &displayGrid) {
     addPixel(displayGrid, x, y, 255);

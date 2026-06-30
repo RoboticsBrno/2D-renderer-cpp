@@ -1,11 +1,12 @@
 #include "Shapes/Polygon.hpp"
+#include <memory>
 #include <numbers>
 
 Polygon::Polygon(const PolygonParams &params)
     : Shape(params), vertices(params.vertices), fill(params.fill) {}
 
-Collider *Polygon::defaultCollider() {
-    return new PolygonCollider(x, y, vertices);
+std::unique_ptr<Collider> Polygon::defaultCollider() {
+    return std::make_unique<PolygonCollider>(x, y, vertices);
 }
 
 std::vector<std::pair<int, int>> Polygon::getTransformedVertices() {

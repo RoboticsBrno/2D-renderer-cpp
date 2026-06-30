@@ -1,6 +1,7 @@
 #include "Shapes/RegularPolygon.hpp"
 #include <algorithm>
 #include <cmath>
+#include <memory>
 
 RegularPolygon::RegularPolygon(const RegularPolygonSideParams &params)
     : Shape(params), sides(params.sides), useSideLength(true),
@@ -123,10 +124,10 @@ void RegularPolygon::getInsidePoints(
     }
 }
 
-Collider *RegularPolygon::defaultCollider() {
+std::unique_ptr<Collider> RegularPolygon::defaultCollider() {
     int effectiveRadius =
         useSideLength ? calculateRadiusFromSideLength(sideLength) : radius;
-    return new RegularPolygonCollider(x, y, sides, effectiveRadius);
+    return std::make_unique<RegularPolygonCollider>(x, y, sides, effectiveRadius);
 }
 
 std::vector<std::pair<int, int>> RegularPolygon::getVertices() {

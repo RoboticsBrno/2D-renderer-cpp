@@ -263,8 +263,10 @@ bool IntersectionVisitor::circleLine(const CircleCollider *circle,
     int y2 = p2.second;
 
     float lineLenSq = std::pow(x2 - line->x, 2) + std::pow(y2 - line->y, 2);
-    if (lineLenSq == 0)
-        return circlePoint(circle, new PointCollider(line->x, line->y));
+    if (lineLenSq == 0) {
+        PointCollider degenerate(line->x, line->y);
+        return circlePoint(circle, &degenerate);
+    }
     float t =
         std::max(0.0f, std::min(1.0f, ((circle->x - line->x) * (x2 - line->x) +
                                        (circle->y - line->y) * (y2 - line->y)) /

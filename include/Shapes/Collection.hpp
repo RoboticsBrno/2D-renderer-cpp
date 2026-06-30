@@ -9,7 +9,7 @@ class Collection : public Shape {
     Collection(const ShapeParams &params);
     ~Collection() override;
 
-    Collider *defaultCollider() override;
+    std::unique_ptr<Collider> defaultCollider() override;
     void addShape(std::shared_ptr<Shape> shape);
     void removeShape(std::shared_ptr<Shape> shape);
 

@@ -1,10 +1,11 @@
 #include "Shapes/LineSegment.hpp"
+#include <memory>
 
 LineSegment::LineSegment(const LineSegmentParams &params)
     : Shape(params), x2(params.x2), y2(params.y2) {}
 
-Collider *LineSegment::defaultCollider() {
-    return new LineSegmentCollider(x, y, x2, y2);
+std::unique_ptr<Collider> LineSegment::defaultCollider() {
+    return std::make_unique<LineSegmentCollider>(x, y, x2, y2);
 }
 
 void LineSegment::drawAliased(Display &displayGrid) {

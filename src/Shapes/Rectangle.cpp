@@ -3,14 +3,15 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <memory>
 #include <sys/types.h>
 
 Rectangle::Rectangle(const RectangleParams &params)
     : Shape(params), width(params.width), height(params.height),
       fill(params.fill) {}
 
-Collider *Rectangle::defaultCollider() {
-    return new RectangleCollider(x, y, width, height);
+std::unique_ptr<Collider> Rectangle::defaultCollider() {
+    return std::make_unique<RectangleCollider>(x, y, width, height);
 }
 
 void Rectangle::getInsidePoints(

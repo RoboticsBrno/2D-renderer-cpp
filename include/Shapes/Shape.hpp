@@ -75,7 +75,7 @@ class Shape {
     Matrix2D cachedGlobalMatrix;
     bool isDirty = true;
 
-    Collider *collider;
+    std::unique_ptr<Collider> collider;
 
     // Protected helper methods
     void transformPoint(int x, int y, const Matrix2D &m, int &outX, int &outY);
@@ -100,9 +100,6 @@ class Shape {
     Shape(const ShapeParams &params);
     virtual ~Shape();
 
-    // Shapes own a raw Collider* that the destructor frees; copying would
-    // double-free it. Shapes are always managed through shared_ptr, so
-    // copy/move is disabled rather than implemented.
     Shape(const Shape &) = delete;
     Shape &operator=(const Shape &) = delete;
 
@@ -112,7 +109,7 @@ class Shape {
     // Pure virtual methods
     virtual void drawAntiAliased(Display &pixels) = 0;
     virtual void drawAliased(Display &pixels) = 0;
-    virtual Collider *defaultCollider() = 0;
+    virtual std::unique_ptr<Collider> defaultCollider() = 0;
 
     virtual void markDirty() { isDirty = true; };
 
@@ -133,10 +130,7 @@ class Shape {
     void setScaleOrigin(int x, int y);
 
     // Collider methods
-    // Takes ownership of `collider` (or of a heap-allocated defaultCollider()
-    // if null): it will be deleted by removeCollider(), a later addCollider()
-    // call, or the Shape's destructor. Never pass a pointer you still own.
-    void addCollider(Collider *collider = nullptr);
+    void addCollider(std::unique_ptr<Collider> collider = nullptr);
     void removeCollider();
     bool intersects(const std::shared_ptr<Shape> &other);
 
@@ -179,7 +173,7 @@ class Shape {
     float getUVOffsetY() const { return uvTransform.offsetY; }
     float getUVRotation() const { return uvTransform.rotation; }
 
-    Collider *getCollider() const { return collider; }
+    Collider *getCollider() const { return collider.get(); }
     Shape *getParent() const { return parent; }
 
     // Setters
