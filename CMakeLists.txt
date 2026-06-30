@@ -1,10 +1,11 @@
-idf_component_register(SRCS 
+idf_component_register(SRCS
     "src/Profiler.cpp"
     "src/Renderer.cpp"
     "src/Utils.cpp"
     "src/Texture.cpp"
     "src/Collider.cpp"
     "src/Font.cpp"
+    "src/DrawUtils.cpp"
     "src/Shapes/Shape.cpp"
     "src/Shapes/Circle.cpp"
     "src/Shapes/Rectangle.cpp"

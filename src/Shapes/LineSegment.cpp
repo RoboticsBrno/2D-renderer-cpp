@@ -1,4 +1,5 @@
 #include "Shapes/LineSegment.hpp"
+#include "DrawUtils.hpp"
 #include <memory>
 
 LineSegment::LineSegment(const LineSegmentParams &params)
@@ -12,17 +13,18 @@ void LineSegment::drawAliased(Display &displayGrid) {
     Matrix2D globalMat = getGlobalMatrix();
 
     int x0, y0, x1, y1;
-    Shape::transformPoint(0, 0, globalMat, x0, y0);
-    Shape::transformPoint(x2 - x, y2 - y, globalMat, x1, y1);
+    transformPoint(0, 0, globalMat, x0, y0);
+    transformPoint(x2 - x, y2 - y, globalMat, x1, y1);
 
-    bresenhamLine(displayGrid, x0, y0, x1, y1);
+    bresenhamLine(displayGrid, x0, y0, x1, y1, makePaintCtx());
 }
+
 void LineSegment::drawAntiAliased(Display &displayGrid) {
     Matrix2D globalMat = getGlobalMatrix();
 
     int x0, y0, x1, y1;
-    Shape::transformPoint(0, 0, globalMat, x0, y0);
-    Shape::transformPoint(x2 - x, y2 - y, globalMat, x1, y1);
+    transformPoint(0, 0, globalMat, x0, y0);
+    transformPoint(x2 - x, y2 - y, globalMat, x1, y1);
 
-    wuLine(displayGrid, x0, y0, x1, y1);
+    wuLine(displayGrid, x0, y0, x1, y1, makePaintCtx());
 }

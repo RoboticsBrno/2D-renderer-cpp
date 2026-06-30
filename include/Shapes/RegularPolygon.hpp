@@ -50,8 +50,5 @@ class RegularPolygon : public Shape {
   private:
     int calculateRadiusFromSideLength(int sideLength);
     std::vector<std::pair<int, int>> getVertices();
-    std::vector<LineSegment *> getSegments();
-    void getInsidePoints(Display &displayGrid,
-                         const std::vector<std::pair<int, int>> &vertices);
     void updateLocalVertices();
 };

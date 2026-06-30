@@ -23,15 +23,10 @@ class Circle : public Shape {
     int getRadius() const;
 
   private:
-    std::vector<std::pair<int, int>> getPointsToDraw(int cx, int cy, int x,
-                                                     int y);
-    // Helpers
-    void drawHorizontalLine(Display &displayGrid, int x1, int x2, int y);
-    void drawOctantPointsAA(Display &displayGrid, int cx, int cy, int x, int y,
-                            float alpha);
-
-    void drawCirclePoints(Display &displayGrid, int cx, int cy, int x, int y);
+    void drawHorizontalLine(Display &displayGrid, int x1, int x2, int y,
+                            const PaintCtx &ctx);
     void drawAntiAliasedPoint(Display &displayGrid, int cx, int cy, int x,
-                              int y, float intensity);
-    void fillCircle(Display &displayGrid, int cx, int cy, int r);
+                              int y, float intensity, const PaintCtx &ctx);
+    void fillCircle(Display &displayGrid, int cx, int cy, int r,
+                    const PaintCtx &ctx);
 };

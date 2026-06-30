@@ -1,5 +1,6 @@
 #pragma once
 #include "../Collider.hpp"
+#include "../DrawUtils.hpp"
 #include "../Texture.hpp"
 #include "Utils.hpp"
 #include <memory>
@@ -78,15 +79,8 @@ class Shape {
     std::unique_ptr<Collider> collider;
 
     // Protected helper methods
-    void transformPoint(int x, int y, const Matrix2D &m, int &outX, int &outY);
     std::pair<int, int> getTransformedPosition(int inputX, int inputY);
-
-    void bresenhamLine(Display &points, int x0, int y0, int x1, int y1);
-    void wuLine(Display &points, int x0, int y0, int x1, int y1);
-    void addPixel(Display &points, int x, int y, float alpha);
-    void getInsidePoints(Display &points,
-                         const std::vector<std::pair<int, int>> &vertices);
-    void getUVAt(int x, int y, float &outU, float &outV);
+    PaintCtx makePaintCtx() const;
 
     void updateTrigCache();
     void updateTextureTrigCache();
@@ -140,7 +134,6 @@ class Shape {
     void setTextureOffset(float offsetX, float offsetY);
     void setTextureRotation(float rotation);
     void setFixTexture(bool fixed);
-    Color sampleTexture(int x, int y);
 
     // Parent-child relationship
     void setParent(Shape *parent);

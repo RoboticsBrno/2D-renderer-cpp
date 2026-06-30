@@ -26,7 +26,4 @@ class Polygon : public Shape {
 
   private:
     std::vector<std::pair<int, int>> getTransformedVertices();
-    std::vector<LineSegment *> getSegments();
-    void getInsidePoints(Display &displayGrid,
-                         const std::vector<std::pair<int, int>> &vertices);
 };

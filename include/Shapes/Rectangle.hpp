@@ -29,6 +29,4 @@ class Rectangle : public Shape {
 
   private:
     std::array<std::pair<int, int>, 4> getVertices();
-    void getInsidePoints(Display &displayGrid,
-                         const std::array<std::pair<int, int>, 4> &vertices);
 };

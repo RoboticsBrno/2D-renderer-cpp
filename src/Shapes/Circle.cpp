@@ -1,4 +1,5 @@
 #include "Shapes/Circle.hpp"
+#include "DrawUtils.hpp"
 #include "Utils.hpp"
 #include <cmath>
 #include <memory>
@@ -12,50 +13,36 @@ std::unique_ptr<Collider> Circle::defaultCollider() {
 
 int Circle::getRadius() const { return radius; }
 
-std::vector<std::pair<int, int>> Circle::getPointsToDraw(int cx, int cy, int x,
-                                                         int y) {
-    return {{cx + x, cy + y}, {cx - x, cy + y}, {cx + x, cy - y},
-            {cx - x, cy - y}, {cx + y, cy + x}, {cx - y, cy + x},
-            {cx + y, cy - x}, {cx - y, cy - x}};
-}
-
-void Circle::drawCirclePoints(Display &displayGrid, int cx, int cy, int x,
-                              int y) {
-    auto pointsToDraw = getPointsToDraw(cx, cy, x, y);
-    for (const auto &point : pointsToDraw) {
-        addPixel(displayGrid, static_cast<int>(std::round(point.first)),
-                 static_cast<int>(std::round(point.second)), 1.0f);
-    }
-}
-
 void Circle::drawAntiAliasedPoint(Display &displayGrid, int cx, int cy, int x,
-                                  int y, float intensity) {
-    addPixel(displayGrid, cx + x, cy + y, intensity);
-    addPixel(displayGrid, cx - x, cy + y, intensity);
-    addPixel(displayGrid, cx + x, cy - y, intensity);
-    addPixel(displayGrid, cx - x, cy - y, intensity);
-    addPixel(displayGrid, cx + y, cy + x, intensity);
-    addPixel(displayGrid, cx - y, cy + x, intensity);
-    addPixel(displayGrid, cx + y, cy - x, intensity);
-    addPixel(displayGrid, cx - y, cy - x, intensity);
+                                  int y, float intensity, const PaintCtx &ctx) {
+    addPixel(displayGrid, cx + x, cy + y, intensity, ctx);
+    addPixel(displayGrid, cx - x, cy + y, intensity, ctx);
+    addPixel(displayGrid, cx + x, cy - y, intensity, ctx);
+    addPixel(displayGrid, cx - x, cy - y, intensity, ctx);
+    addPixel(displayGrid, cx + y, cy + x, intensity, ctx);
+    addPixel(displayGrid, cx - y, cy + x, intensity, ctx);
+    addPixel(displayGrid, cx + y, cy - x, intensity, ctx);
+    addPixel(displayGrid, cx - y, cy - x, intensity, ctx);
 }
 
-void Circle::fillCircle(Display &displayGrid, int cx, int cy, int r) {
-
+void Circle::fillCircle(Display &displayGrid, int cx, int cy, int r,
+                        const PaintCtx &ctx) {
     for (int y = -r; y <= r; y++) {
         int xLen = static_cast<int>(std::sqrt(r * r - y * y));
-
-        int startX = cx - xLen;
-        int endX = cx + xLen;
         int screenY = cy + y;
-
-        for (int x = startX; x <= endX; x++) {
-            addPixel(displayGrid, x, screenY, 1.0f);
-        }
+        for (int x = cx - xLen; x <= cx + xLen; x++)
+            addPixel(displayGrid, x, screenY, 1.0f, ctx);
     }
+}
+
+void Circle::drawHorizontalLine(Display &displayGrid, int x1, int x2, int y,
+                                const PaintCtx &ctx) {
+    for (int x = x1; x <= x2; x++)
+        addPixel(displayGrid, x, y, 1.0f, ctx);
 }
 
 void Circle::drawAliased(Display &displayGrid) {
+    auto ctx = makePaintCtx();
     auto center = getTransformedPosition(0, 0);
     int r = radius;
     int x = 0;
@@ -64,13 +51,13 @@ void Circle::drawAliased(Display &displayGrid) {
 
     while (y >= x) {
         drawHorizontalLine(displayGrid, center.first - x, center.first + x,
-                           center.second + y);
+                           center.second + y, ctx);
         drawHorizontalLine(displayGrid, center.first - x, center.first + x,
-                           center.second - y);
+                           center.second - y, ctx);
         drawHorizontalLine(displayGrid, center.first - y, center.first + y,
-                           center.second + x);
+                           center.second + x, ctx);
         drawHorizontalLine(displayGrid, center.first - y, center.first + y,
-                           center.second - x);
+                           center.second - x, ctx);
 
         if (d < 0) {
             d = d + 4 * x + 6;
@@ -82,18 +69,11 @@ void Circle::drawAliased(Display &displayGrid) {
     }
 }
 
-// Helper for the inner loop
-void Circle::drawHorizontalLine(Display &displayGrid, int x1, int x2, int y) {
-    for (int x = x1; x <= x2; x++) {
-        addPixel(displayGrid, x, y, 1.0f);
-    }
-}
-
 void Circle::drawAntiAliased(Display &displayGrid) {
+    auto ctx = makePaintCtx();
     auto center = getTransformedPosition(0, 0);
     int r = radius;
 
-    // Xiaolin Wu's circle algorithm for anti-aliased rendering
     float sqrt2 = std::sqrt(2.0f);
     float maxX = r / sqrt2;
 
@@ -108,16 +88,15 @@ void Circle::drawAntiAliased(Display &displayGrid) {
         float y2 = y1 + 1;
 
         drawAntiAliasedPoint(displayGrid, center.first, center.second, xPos, y1,
-                             intensity2);
+                             intensity2, ctx);
         drawAntiAliasedPoint(displayGrid, center.first, center.second, xPos, y2,
-                             intensity);
+                             intensity, ctx);
         drawAntiAliasedPoint(displayGrid, center.first, center.second, y1, xPos,
-                             intensity2);
+                             intensity2, ctx);
         drawAntiAliasedPoint(displayGrid, center.first, center.second, y2, xPos,
-                             intensity);
+                             intensity, ctx);
     }
 
-    if (fill) {
-        fillCircle(displayGrid, center.first, center.second, r);
-    }
+    if (fill)
+        fillCircle(displayGrid, center.first, center.second, r, ctx);
 }
