@@ -1,8 +1,53 @@
 #pragma once
-#include "esp_heap_caps.h"
-#include "esp_log.h"
+#include <cstdint>
+#include <cstdio>
 #include <cstdlib>
 #include <vector>
+
+// ---- Platform logging -------------------------------------------------------
+
+#ifdef ESP_PLATFORM
+#include "esp_log.h"
+#define RENDERER_LOGE(tag, fmt, ...) ESP_LOGE(tag, fmt, ##__VA_ARGS__)
+#define RENDERER_LOGI(tag, fmt, ...) ESP_LOGI(tag, fmt, ##__VA_ARGS__)
+#define RENDERER_LOGW(tag, fmt, ...) ESP_LOGW(tag, fmt, ##__VA_ARGS__)
+#else
+#define RENDERER_LOGE(tag, fmt, ...) fprintf(stderr, "[E][%s] " fmt "\n", tag, ##__VA_ARGS__)
+#define RENDERER_LOGI(tag, fmt, ...) fprintf(stderr, "[I][%s] " fmt "\n", tag, ##__VA_ARGS__)
+#define RENDERER_LOGW(tag, fmt, ...) fprintf(stderr, "[W][%s] " fmt "\n", tag, ##__VA_ARGS__)
+#endif
+
+// ---- Pixel buffer allocator -------------------------------------------------
+
+#ifdef ESP_PLATFORM
+#include "esp_heap_caps.h"
+
+template <class T> struct PsramAllocator {
+    typedef T value_type;
+
+    PsramAllocator() = default;
+    template <class U>
+    constexpr PsramAllocator(const PsramAllocator<U> &) noexcept {}
+
+    T *allocate(std::size_t n) {
+        void *p = heap_caps_malloc(n * sizeof(T), MALLOC_CAP_SPIRAM);
+        if (!p) {
+            RENDERER_LOGE("PSRAM", "CRITICAL: Failed to allocate %zu bytes in PSRAM!",
+                          n * sizeof(T));
+            std::abort();
+        }
+        return static_cast<T *>(p);
+    }
+
+    void deallocate(T *p, std::size_t) noexcept { heap_caps_free(p); }
+};
+
+#else
+#include <memory>
+template <class T> using PsramAllocator = std::allocator<T>;
+#endif
+
+// ---- Core types -------------------------------------------------------------
 
 struct Color {
     uint8_t r;
@@ -17,27 +62,6 @@ struct Color {
 
 bool operator==(const Color &lhs, const Color &rhs);
 bool operator!=(const Color &lhs, const Color &rhs);
-
-template <class T> struct PsramAllocator {
-    typedef T value_type;
-
-    PsramAllocator() = default;
-    template <class U>
-    constexpr PsramAllocator(const PsramAllocator<U> &) noexcept {}
-
-    T *allocate(std::size_t n) {
-        void *p = heap_caps_malloc(n * sizeof(T), MALLOC_CAP_SPIRAM);
-        if (!p) {
-            ESP_LOGE("PSRAM",
-                     "CRITICAL: Failed to allocate %zu bytes in PSRAM!",
-                     n * sizeof(T));
-            std::abort();
-        }
-        return static_cast<T *>(p);
-    }
-
-    void deallocate(T *p, std::size_t) noexcept { heap_caps_free(p); }
-};
 
 struct Display {
     std::vector<Color, PsramAllocator<Color>> pixels;

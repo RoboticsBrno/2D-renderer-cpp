@@ -7,6 +7,19 @@ extern "C" {
 
 #include <stdint.h>
 
+#ifdef ESP_PLATFORM
+#include "esp_timer.h"
+#define RENDERER_GET_TIME_US() RENDERER_GET_TIME_US()
+#else
+#include <time.h>
+static inline uint64_t _renderer_get_time_us(void) {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (uint64_t)ts.tv_sec * 1000000ULL + (uint64_t)ts.tv_nsec / 1000;
+}
+#define RENDERER_GET_TIME_US() _renderer_get_time_us()
+#endif
+
 #ifndef MAX_PROFILED_FUNCTIONS
 #define MAX_PROFILED_FUNCTIONS 50
 #endif
@@ -32,26 +45,26 @@ void profile_print_results_sorted(void);
 
 #define PROFILE_FUNC_RET(func_call)                                            \
     ({                                                                         \
-        uint64_t _start = esp_timer_get_time();                                \
+        uint64_t _start = RENDERER_GET_TIME_US();                                \
         typeof(func_call) _result = func_call;                                 \
-        uint64_t _end = esp_timer_get_time();                                  \
+        uint64_t _end = RENDERER_GET_TIME_US();                                  \
         profile_add_data(#func_call, _end - _start);                           \
         _result;                                                               \
     })
 
 #define PROFILE_FUNC(func_call)                                                \
     do {                                                                       \
-        uint64_t _start = esp_timer_get_time();                                \
+        uint64_t _start = RENDERER_GET_TIME_US();                                \
         func_call;                                                             \
-        uint64_t _end = esp_timer_get_time();                                  \
+        uint64_t _end = RENDERER_GET_TIME_US();                                  \
         profile_add_data(#func_call, _end - _start);                           \
     } while (0)
 
-#define PROFILE_START() uint64_t _profile_start = esp_timer_get_time()
+#define PROFILE_START() uint64_t _profile_start = RENDERER_GET_TIME_US()
 
 #define PROFILE_END(name)                                                      \
     do {                                                                       \
-        uint64_t _profile_end = esp_timer_get_time();                          \
+        uint64_t _profile_end = RENDERER_GET_TIME_US();                          \
         profile_add_data(name, _profile_end - _profile_start);                 \
     } while (0)
 

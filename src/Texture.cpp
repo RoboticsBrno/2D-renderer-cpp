@@ -1,5 +1,4 @@
 #include "Texture.hpp"
-#include "esp_log.h"
 #include <algorithm>
 #include <cstring>
 #include <filesystem>
@@ -23,24 +22,24 @@ bool Texture::readFile(const std::string &filename,
 
     std::error_code ec;
     if (!fs::exists(filepath, ec)) {
-        ESP_LOGE(TAG, "File not found: %s", filename.c_str());
+        RENDERER_LOGE(TAG, "File not found: %s", filename.c_str());
         return false;
     }
 
     std::ifstream file(filepath, std::ios::binary);
     if (!file.is_open()) {
-        ESP_LOGE(TAG, "Failed to open file stream: %s", filename.c_str());
+        RENDERER_LOGE(TAG, "Failed to open file stream: %s", filename.c_str());
         return false;
     }
 
     auto fileSize = fs::file_size(filepath, ec);
     if (ec) {
-        ESP_LOGE(TAG, "Failed to get file size: %s", filename.c_str());
+        RENDERER_LOGE(TAG, "Failed to get file size: %s", filename.c_str());
         return false;
     }
 
     if (fileSize == 0) {
-        ESP_LOGE(TAG, "File is empty: %s", filename.c_str());
+        RENDERER_LOGE(TAG, "File is empty: %s", filename.c_str());
         return false;
     }
 
@@ -48,11 +47,11 @@ bool Texture::readFile(const std::string &filename,
     file.read(reinterpret_cast<char *>(buffer.data()), fileSize);
 
     if (file.fail()) {
-        ESP_LOGE(TAG, "Error reading data from file: %s", filename.c_str());
+        RENDERER_LOGE(TAG, "Error reading data from file: %s", filename.c_str());
         return false;
     }
 
-    ESP_LOGI(TAG, "Successfully read %s, size: %zu bytes", filename.c_str(),
+    RENDERER_LOGI(TAG, "Successfully read %s, size: %zu bytes", filename.c_str(),
              (size_t)fileSize);
     return true;
 }
@@ -86,20 +85,20 @@ bool Texture::fromBMP(const std::string &filename, Texture &outTexture,
                       bool littleEndian) {
     std::vector<uint8_t> fileData;
     if (!readFile(filename, fileData)) {
-        ESP_LOGE(TAG, "Failed to read BMP file: %s", filename.c_str());
+        RENDERER_LOGE(TAG, "Failed to read BMP file: %s", filename.c_str());
         return false;
     }
 
     const uint8_t *data = fileData.data();
 
     if (fileData.size() < 54) {
-        ESP_LOGE(TAG, "File too small to be a BMP");
+        RENDERER_LOGE(TAG, "File too small to be a BMP");
         return false;
     }
 
     uint16_t signature = getUint16(data, 0, littleEndian);
     if (signature != 0x4D42) { // 'BM'
-        ESP_LOGE(TAG, "Invalid BMP file signature: 0x%d", signature);
+        RENDERER_LOGE(TAG, "Invalid BMP file signature: 0x%d", signature);
         return false;
     }
 
@@ -110,12 +109,12 @@ bool Texture::fromBMP(const std::string &filename, Texture &outTexture,
     uint16_t bitsPerPixel = getUint16(data, 28, littleEndian);
 
     if (width <= 0 || height <= 0) {
-        ESP_LOGE(TAG, "Invalid BMP dimensions: %dx%d", (int)width, (int)height);
+        RENDERER_LOGE(TAG, "Invalid BMP dimensions: %dx%d", (int)width, (int)height);
         return false;
     }
 
     if (pixelDataOffset >= fileData.size()) {
-        ESP_LOGE(TAG, "Pixel data offset out of bounds");
+        RENDERER_LOGE(TAG, "Pixel data offset out of bounds");
         return false;
     }
 
@@ -131,7 +130,7 @@ bool Texture::fromBMP(const std::string &filename, Texture &outTexture,
                     pixelDataOffset + (height - 1 - y) * bytesPerRow + x * 3;
 
                 if (offset + 2 >= fileData.size()) {
-                    ESP_LOGE(TAG, "BMP data out of bounds");
+                    RENDERER_LOGE(TAG, "BMP data out of bounds");
                     return false;
                 }
 
@@ -148,7 +147,7 @@ bool Texture::fromBMP(const std::string &filename, Texture &outTexture,
                     pixelDataOffset + (height - 1 - y) * width * 4 + x * 4;
 
                 if (offset + 3 >= fileData.size()) {
-                    ESP_LOGE(TAG, "BMP data out of bounds");
+                    RENDERER_LOGE(TAG, "BMP data out of bounds");
                     return false;
                 }
 
@@ -160,13 +159,13 @@ bool Texture::fromBMP(const std::string &filename, Texture &outTexture,
             }
         }
     } else {
-        ESP_LOGE(TAG, "Unsupported BMP format: %d bits per pixel",
+        RENDERER_LOGE(TAG, "Unsupported BMP format: %d bits per pixel",
                  bitsPerPixel);
         return false;
     }
 
     outTexture = Texture(pixels, width, height);
-    ESP_LOGI(TAG, "Texture loaded successfully");
+    RENDERER_LOGI(TAG, "Texture loaded successfully");
     return true;
 }
 
@@ -203,7 +202,7 @@ void Texture::setWrapMode(const std::string &mode) {
     if (mode == "repeat" || mode == "clamp") {
         wrapMode = mode;
     } else {
-        ESP_LOGW(TAG, "Invalid wrap mode: %s, using 'repeat'", mode.c_str());
+        RENDERER_LOGW(TAG, "Invalid wrap mode: %s, using 'repeat'", mode.c_str());
         wrapMode = "repeat";
     }
 }

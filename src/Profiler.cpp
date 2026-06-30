@@ -1,4 +1,5 @@
 #include "Profiler.hpp"
+#include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -58,10 +59,10 @@ void profile_print_results(void) {
                 ? profiles[i].total_time_us / profiles[i].call_count
                 : 0;
 
-        printf("%-*s %8lu %12llu %10llu %10llu %10llu\n", max_name_length,
-               profiles[i].function_name, profiles[i].call_count,
-               profiles[i].total_time_us, avg_time, profiles[i].max_time_us,
-               profiles[i].min_time_us);
+        printf("%-*s %8" PRIu32 " %12" PRIu64 " %10" PRIu64 " %10" PRIu64 " %10" PRIu64 "\n",
+               max_name_length, profiles[i].function_name,
+               profiles[i].call_count, profiles[i].total_time_us,
+               avg_time, profiles[i].max_time_us, profiles[i].min_time_us);
     }
 
     for (int i = 0; i < max_name_length + 60; i++)

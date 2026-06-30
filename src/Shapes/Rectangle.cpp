@@ -1,6 +1,5 @@
 #include "Shapes/Rectangle.hpp"
 #include "DrawUtils.hpp"
-#include "esp_timer.h"
 #include <algorithm>
 #include <array>
 #include <cstdint>
