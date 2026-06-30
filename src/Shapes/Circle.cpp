@@ -5,13 +5,13 @@
 #include <memory>
 
 Circle::Circle(const CircleParams &params)
-    : Shape(params), radius(params.radius), fill(params.fill) {}
+    : Shape(params), _radius(params.radius), fill(params.fill) {}
 
 std::unique_ptr<Collider> Circle::defaultCollider() {
-    return std::make_unique<CircleCollider>(x, y, radius);
+    return std::make_unique<CircleCollider>(_x, _y, _radius);
 }
 
-int Circle::getRadius() const { return radius; }
+int Circle::radius() const { return _radius; }
 
 void Circle::drawAntiAliasedPoint(Display &displayGrid, int cx, int cy, int x,
                                   int y, float intensity, const PaintCtx &ctx) {
@@ -44,7 +44,7 @@ void Circle::drawHorizontalLine(Display &displayGrid, int x1, int x2, int y,
 void Circle::drawAliased(Display &displayGrid) {
     auto ctx = makePaintCtx();
     auto center = getTransformedPosition(0, 0);
-    int r = radius;
+    int r = _radius;
     int x = 0;
     int y = r;
     int d = 3 - 2 * r;
@@ -72,7 +72,7 @@ void Circle::drawAliased(Display &displayGrid) {
 void Circle::drawAntiAliased(Display &displayGrid) {
     auto ctx = makePaintCtx();
     auto center = getTransformedPosition(0, 0);
-    int r = radius;
+    int r = _radius;
 
     float sqrt2 = std::sqrt(2.0f);
     float maxX = r / sqrt2;

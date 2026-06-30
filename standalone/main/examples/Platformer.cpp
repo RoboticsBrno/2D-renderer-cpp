@@ -111,16 +111,16 @@ void runPlatformer() {
 
         // 2. Vertical Movement & Collision
         velocityY += gravity;
-        float oldPlayerY = player->getY();
+        float oldPlayerY = player->y();
         player->translate(0.0f, velocityY);
         canJump = false;
         for (const auto& platform : platforms) {
             if (player->intersects(platform)) {
 
                 if (velocityY > 0 &&
-                    oldPlayerY + player->getHeight() <= platform->getY() + 1) {
-                    player->setPosition(player->getX(),
-                                        platform->getY() - player->getHeight());
+                    oldPlayerY + player->height() <= platform->y() + 1) {
+                    player->setPosition(player->x(),
+                                        platform->y() - player->height());
                     velocityY = 0;
                     canJump = true;
                 }
@@ -128,13 +128,13 @@ void runPlatformer() {
         }
 
         // --- Screen Boundaries & Respawn ---
-        if (player->getX() < 0) {
-            player->setPosition(0, player->getY());
+        if (player->x() < 0) {
+            player->setPosition(0, player->y());
         }
-        if (player->getX() + player->getWidth() > width) {
-            player->setPosition(width - player->getWidth(), player->getY());
+        if (player->x() + player->width() > width) {
+            player->setPosition(width - player->width(), player->y());
         }
-        if (player->getY() > height) {
+        if (player->y() > height) {
             player->setPosition(10, 48);
             velocityY = 0;
         }

@@ -7,14 +7,14 @@ Polygon::Polygon(const PolygonParams &params)
     : Shape(params), vertices(params.vertices), fill(params.fill) {}
 
 std::unique_ptr<Collider> Polygon::defaultCollider() {
-    return std::make_unique<PolygonCollider>(x, y, vertices);
+    return std::make_unique<PolygonCollider>(_x, _y, vertices);
 }
 
 std::vector<std::pair<int, int>> Polygon::getTransformedVertices() {
     std::vector<std::pair<int, int>> transformed;
     transformed.reserve(vertices.size());
 
-    Matrix2D globalMat = getGlobalMatrix();
+    Matrix2D globalMat = globalMatrix();
 
     for (const auto &v : vertices) {
         int x, y;

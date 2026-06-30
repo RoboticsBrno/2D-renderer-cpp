@@ -10,7 +10,7 @@ std::unique_ptr<Collider> Collection::defaultCollider() {
 }
 
 void Collection::markDirty() {
-    if (isDirty)
+    if (_isDirty)
         return;
 
     Shape::markDirty();
@@ -56,7 +56,7 @@ void Collection::drawAliased(Display &displayGrid) {
                   this->cachedSortedShapes.end(),
                   [](const std::shared_ptr<Shape> &a,
                      const std::shared_ptr<Shape> &b) {
-                      return a->getZ() < b->getZ();
+                      return a->z() < b->z();
                   });
         this->needsSort = false;
     }
@@ -74,7 +74,7 @@ void Collection::drawAntiAliased(Display &displayGrid) {
                   this->cachedSortedShapes.end(),
                   [](const std::shared_ptr<Shape> &a,
                      const std::shared_ptr<Shape> &b) {
-                      return a->getZ() < b->getZ();
+                      return a->z() < b->z();
                   });
         this->needsSort = false;
     }

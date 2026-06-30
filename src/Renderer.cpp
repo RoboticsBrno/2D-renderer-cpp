@@ -20,7 +20,7 @@ void Renderer::render(
     std::vector<std::shared_ptr<Collection>> sortedCollections = collections;
     std::sort(sortedCollections.begin(), sortedCollections.end(),
               [](std::shared_ptr<Collection> a, std::shared_ptr<Collection> b) {
-                  return a->getZ() < b->getZ();
+                  return a->z() < b->z();
               });
 
     for (std::shared_ptr<Collection> collection : sortedCollections) {

@@ -5,13 +5,13 @@
 Point::Point(const ShapeParams &params) : Shape(params) {}
 
 std::unique_ptr<Collider> Point::defaultCollider() {
-    return std::make_unique<PointCollider>(x, y);
+    return std::make_unique<PointCollider>(_x, _y);
 }
 
 void Point::drawAntiAliased(Display &displayGrid) {
-    addPixel(displayGrid, x, y, 1.0f, makePaintCtx());
+    addPixel(displayGrid, _x, _y, 1.0f, makePaintCtx());
 }
 
 void Point::drawAliased(Display &displayGrid) {
-    addPixel(displayGrid, x, y, 1.0f, makePaintCtx());
+    addPixel(displayGrid, _x, _y, 1.0f, makePaintCtx());
 }

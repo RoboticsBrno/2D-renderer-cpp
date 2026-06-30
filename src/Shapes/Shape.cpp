@@ -16,14 +16,14 @@ Matrix2D multiplyMatrices(const Matrix2D &m1, const Matrix2D &m2) {
     return out;
 }
 
-Matrix2D Shape::getLocalMatrix() {
+Matrix2D Shape::localMatrix() {
     updateTrigCache();
 
-    float c = cosAngle;
-    float s = sinAngle;
+    float c = _cosAngle;
+    float s = _sinAngle;
 
-    float px = static_cast<float>(rotation.x);
-    float py = static_cast<float>(rotation.y);
+    float px = static_cast<float>(_rotation.x);
+    float py = static_cast<float>(_rotation.y);
 
     Matrix2D m;
     m.a = c;
@@ -31,69 +31,67 @@ Matrix2D Shape::getLocalMatrix() {
     m.c = s;
     m.d = c;
 
-    m.e = this->x + px * (1.0f - c) - py * s;
-    m.f = this->y + py * (1.0f - c) + px * s;
+    m.e = _x + px * (1.0f - c) - py * s;
+    m.f = _y + py * (1.0f - c) + px * s;
 
     return m;
 }
 
-Matrix2D Shape::getGlobalMatrix() {
-    if (!isDirty) {
-        return cachedGlobalMatrix;
-    }
+Matrix2D Shape::globalMatrix() {
+    if (!_isDirty)
+        return _cachedGlobalMatrix;
 
-    Matrix2D localMat = getLocalMatrix();
+    Matrix2D localMat = localMatrix();
 
-    if (parent != nullptr) {
-        cachedGlobalMatrix =
-            multiplyMatrices(parent->getGlobalMatrix(), localMat);
+    if (_parent != nullptr) {
+        _cachedGlobalMatrix =
+            multiplyMatrices(_parent->globalMatrix(), localMat);
     } else {
-        cachedGlobalMatrix = localMat;
+        _cachedGlobalMatrix = localMat;
     }
 
-    isDirty = false;
-    return cachedGlobalMatrix;
+    _isDirty = false;
+    return _cachedGlobalMatrix;
 }
 
-// Constructor & Destructor
 Shape::Shape(const ShapeParams &params)
-    : x(params.x), y(params.y), color(params.color), z(params.z),
-      parent(nullptr), texture(nullptr), fixTexture(false), collider(nullptr) {
-    rotation = {0, 0, 0.0f};
-    scale = {1.0f, 1.0f, 0, 0};
-    uvTransform = {1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f};
+    : _x(params.x), _y(params.y), _color(params.color), _z(params.z),
+      _parent(nullptr), _texture(nullptr), _fixTexture(false),
+      _collider(nullptr) {
+    _rotation = {0, 0, 0.0f};
+    _scale = {1.0f, 1.0f, 0, 0};
+    _uvTransform = {1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f};
 }
 
 Shape::~Shape() = default;
 
-// Cache management
 void Shape::updateTrigCache() {
-    if (!trigCacheValid) {
-        float angleRad = rotation.angle * M_PI / 180.0f;
-        cosAngle = std::cos(angleRad);
-        sinAngle = std::sin(angleRad);
-        trigCacheValid = true;
+    if (!_trigCacheValid) {
+        float angleRad = _rotation.angle * M_PI / 180.0f;
+        _cosAngle = std::cos(angleRad);
+        _sinAngle = std::sin(angleRad);
+        _trigCacheValid = true;
     }
 }
 
 void Shape::updateTextureTrigCache() {
-    if (!texTrigCacheValid) {
-        float angleRad = uvTransform.rotation * M_PI / 180.0f;
-        texCos = std::cos(angleRad);
-        texSin = std::sin(angleRad);
-        texTrigCacheValid = true;
+    if (!_texTrigCacheValid) {
+        float angleRad = _uvTransform.rotation * M_PI / 180.0f;
+        _texCos = std::cos(angleRad);
+        _texSin = std::sin(angleRad);
+        _texTrigCacheValid = true;
     }
 }
 
 void Shape::updateTextureMatrix() {
-    if (!texture)
+    if (!_texture)
         return;
 
     float invA = 1.0f, invB = 0.0f, invC = 0.0f;
     float invD = 0.0f, invE = 1.0f, invF = 0.0f;
 
-    if (fixTexture) {
-        Matrix2D g = getGlobalMatrix();
+    if (_fixTexture) {
+        Matrix2D g = globalMatrix();
         float det = g.a * g.d - g.b * g.c;
 
         if (std::abs(det) > 0.0001f) {
@@ -107,37 +105,37 @@ void Shape::updateTextureMatrix() {
             invF = (g.b * g.e - g.a * g.f) * invDet;
         }
     } else {
-        float localPivotX = static_cast<float>(rotation.x) - this->x;
-        float localPivotY = static_cast<float>(rotation.y) - this->y;
+        float localPivotX = static_cast<float>(_rotation.x) - _x;
+        float localPivotY = static_cast<float>(_rotation.y) - _y;
 
         invA = 1.0f;
         invB = 0.0f;
-        invC = -currentScreenPivotX + localPivotX;
+        invC = -_currentScreenPivotX + localPivotX;
 
         invD = 0.0f;
         invE = 1.0f;
-        invF = -currentScreenPivotY + localPivotY;
+        invF = -_currentScreenPivotY + localPivotY;
     }
 
-    float uA = invA * uvTransform.invScaleX;
-    float uB = invB * uvTransform.invScaleX;
-    float uC = invC * uvTransform.invScaleX + uvTransform.offsetX;
+    float uA = invA * _uvTransform.invScaleX;
+    float uB = invB * _uvTransform.invScaleX;
+    float uC = invC * _uvTransform.invScaleX + _uvTransform.offsetX;
 
-    float vD = invD * uvTransform.invScaleY;
-    float vE = invE * uvTransform.invScaleY;
-    float vF = invF * uvTransform.invScaleY + uvTransform.offsetY;
+    float vD = invD * _uvTransform.invScaleY;
+    float vE = invE * _uvTransform.invScaleY;
+    float vF = invF * _uvTransform.invScaleY + _uvTransform.offsetY;
 
-    if (uvTransform.rotation != 0) {
+    if (_uvTransform.rotation != 0) {
         uC -= 0.5f;
         vF -= 0.5f;
 
-        float tmpA = uA * texCos - vD * texSin;
-        float tmpB = uB * texCos - vE * texSin;
-        float tmpC = uC * texCos - vF * texSin;
+        float tmpA = uA * _texCos - vD * _texSin;
+        float tmpB = uB * _texCos - vE * _texSin;
+        float tmpC = uC * _texCos - vF * _texSin;
 
-        vD = uA * texSin + vD * texCos;
-        vE = uB * texSin + vE * texCos;
-        vF = uC * texSin + vF * texCos;
+        vD = uA * _texSin + vD * _texCos;
+        vE = uB * _texSin + vE * _texCos;
+        vF = uC * _texSin + vF * _texCos;
 
         uA = tmpA;
         uB = tmpB;
@@ -147,159 +145,143 @@ void Shape::updateTextureMatrix() {
         vF += 0.5f;
     }
 
-    tex_A = uA;
-    tex_B = uB;
-    tex_C = uC;
-    tex_D = vD;
-    tex_E = vE;
-    tex_F = vF;
+    _tex_A = uA;
+    _tex_B = uB;
+    _tex_C = uC;
+    _tex_D = vD;
+    _tex_E = vE;
+    _tex_F = vF;
 }
-// Collider methods
+
 void Shape::addCollider(std::unique_ptr<Collider> collider) {
-    this->collider = collider ? std::move(collider) : defaultCollider();
+    _collider = collider ? std::move(collider) : defaultCollider();
 }
 
 void Shape::removeCollider() {
-    collider.reset();
+    _collider.reset();
 }
 
 bool Shape::intersects(const std::shared_ptr<Shape> &other) {
-    if (this->collider && other && other->collider) {
-        return this->collider->intersects(other->collider.get());
+    if (_collider && other && other->_collider) {
+        return _collider->intersects(other->_collider.get());
     }
     return false;
 }
 
-// Position and transformation methods
 void Shape::setPosition(int x, int y) {
-    this->x = x;
-    this->y = y;
+    _x = x;
+    _y = y;
     markDirty();
-    if (collider) {
-        collider->setPosition(x, y);
-    }
+    if (_collider)
+        _collider->setPosition(x, y);
 }
 
 void Shape::translate(int dx, int dy) {
-    x += dx;
-    y += dy;
-
+    _x += dx;
+    _y += dy;
     markDirty();
-    if (collider) {
-        collider->translate(dx, dy);
-    }
+    if (_collider)
+        _collider->translate(dx, dy);
 }
 
 void Shape::translate(float dx, float dy) {
-    x += dx;
-    y += dy;
-
+    _x += dx;
+    _y += dy;
     markDirty();
-    if (collider) {
-        collider->translate(dx, dy);
-    }
+    if (_collider)
+        _collider->translate(dx, dy);
 }
 
 void Shape::rotate(float angle) {
-    rotation.angle = std::fmod(rotation.angle + angle, 360.0f);
+    _rotation.angle = std::fmod(_rotation.angle + angle, 360.0f);
     invalidateTrigCache();
     markDirty();
-
-    if (this->collider) {
-        this->collider->rotate(angle);
-    }
+    if (_collider)
+        _collider->rotate(angle);
 }
 
 void Shape::setPivot(int x, int y) {
-    rotation.x = x;
-    rotation.y = y;
-
+    _rotation.x = x;
+    _rotation.y = y;
     markDirty();
 }
 
-void Shape::setZ(int z) { this->z = z; }
+void Shape::setZ(int z) { _z = z; }
 
-// Scaling methods
 void Shape::setScale(float scaleX, float scaleY, float originX, float originY) {
-    scale.x = scaleX;
-    scale.y = scaleY;
+    _scale.x = scaleX;
+    _scale.y = scaleY;
     if (originX != -1)
-        scale.originX = originX;
+        _scale.originX = originX;
     if (originY != -1)
-        scale.originY = originY;
-
+        _scale.originY = originY;
     markDirty();
 }
 
 void Shape::scaleX(float scaleX, float originX) {
-    scale.x = scaleX;
+    _scale.x = scaleX;
     markDirty();
     if (originX != -1)
-        scale.originX = originX;
+        _scale.originX = originX;
 }
 
 void Shape::scaleY(float scaleY, float originY) {
-    scale.y = scaleY;
+    _scale.y = scaleY;
     markDirty();
     if (originY != -1)
-        scale.originY = originY;
+        _scale.originY = originY;
 }
 
 void Shape::setScaleOrigin(int x, int y) {
     markDirty();
-    scale.originX = x;
-    scale.originY = y;
+    _scale.originX = x;
+    _scale.originY = y;
 }
 
-// Texture methods
-void Shape::setTexture(Texture *texture) { this->texture = texture; }
+void Shape::setTexture(Texture *texture) { _texture = texture; }
 
 void Shape::setTextureScale(float scaleX, float scaleY) {
-    uvTransform.scaleX = scaleX;
-    uvTransform.scaleY = scaleY;
-    uvTransform.invScaleX = 1.0f / scaleX;
-    uvTransform.invScaleY = 1.0f / scaleY;
+    _uvTransform.scaleX = scaleX;
+    _uvTransform.scaleY = scaleY;
+    _uvTransform.invScaleX = 1.0f / scaleX;
+    _uvTransform.invScaleY = 1.0f / scaleY;
 }
 
 void Shape::setTextureOffset(float offsetX, float offsetY) {
-    uvTransform.offsetX = offsetX;
-    uvTransform.offsetY = offsetY;
+    _uvTransform.offsetX = offsetX;
+    _uvTransform.offsetY = offsetY;
 }
 
 void Shape::setTextureRotation(float rotation) {
-    uvTransform.rotation = rotation;
+    _uvTransform.rotation = rotation;
     invalidateTexTrigCache();
 }
 
-void Shape::setFixTexture(bool fixed) { fixTexture = fixed; }
+void Shape::setFixTexture(bool fixed) { _fixTexture = fixed; }
 
-// Parent-child relationship
-void Shape::setParent(Shape *parent) { this->parent = parent; }
+void Shape::setParent(Shape *parent) { _parent = parent; }
 
 PaintCtx Shape::makePaintCtx() const {
-    return {color, texture, tex_A, tex_B, tex_C, tex_D, tex_E, tex_F};
+    return {_color, _texture, _tex_A, _tex_B, _tex_C, _tex_D, _tex_E, _tex_F};
 }
 
 std::pair<int, int> Shape::getTransformedPosition(int inputX, int inputY) {
-    Matrix2D globalMat = getGlobalMatrix();
+    Matrix2D mat = globalMatrix();
     int outX, outY;
-    transformPoint(inputX, inputY, globalMat, outX, outY);
+    transformPoint(inputX, inputY, mat, outX, outY);
     return {outX, outY};
 }
 
 void Shape::draw(Display &displayGrid, const DrawOptions &options) {
-    float localPivotX = (float)rotation.x - this->x;
-    float localPivotY = (float)rotation.y - this->y;
+    float localPivotX = (float)_rotation.x - _x;
+    float localPivotY = (float)_rotation.y - _y;
     auto pivotInt = getTransformedPosition(localPivotX, localPivotY);
 
-    currentScreenPivotX = static_cast<float>(pivotInt.first);
-    currentScreenPivotY = static_cast<float>(pivotInt.second);
+    _currentScreenPivotX = static_cast<float>(pivotInt.first);
+    _currentScreenPivotY = static_cast<float>(pivotInt.second);
 
-    if (texture) {
+    if (_texture)
         updateTextureMatrix();
-    }
 
     options.antialias ? drawAntiAliased(displayGrid) : drawAliased(displayGrid);
 }
-
-

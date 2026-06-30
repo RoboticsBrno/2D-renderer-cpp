@@ -30,38 +30,37 @@ struct ShapeParams {
 
 class Shape {
   private:
-    float cosAngle = 1.0f, sinAngle = 0.0f;
-    float texCos = 1.0f, texSin = 0.0f;
-    bool trigCacheValid = false;
-    bool texTrigCacheValid = false;
-    bool globalMatrixDirty = true;
+    float _cosAngle = 1.0f, _sinAngle = 0.0f;
+    float _texCos = 1.0f, _texSin = 0.0f;
+    bool _trigCacheValid = false;
+    bool _texTrigCacheValid = false;
 
   protected:
-    float x;
-    float y;
-    Color color;
+    float _x;
+    float _y;
+    Color _color;
 
-    float currentScreenPivotX = 0.0f;
-    float currentScreenPivotY = 0.0f;
+    float _currentScreenPivotX = 0.0f;
+    float _currentScreenPivotY = 0.0f;
 
     struct Rotation {
         int x;
         int y;
         float angle;
-    } rotation;
+    } _rotation;
 
-    int z;
-    Shape *parent;
+    int _z;
+    Shape *_parent;
 
     struct Scale {
         float x;
         float y;
         int originX;
         int originY;
-    } scale;
+    } _scale;
 
-    Texture *texture;
-    bool fixTexture;
+    Texture *_texture;
+    bool _fixTexture;
 
     struct UVTransform {
         float scaleX;
@@ -71,22 +70,21 @@ class Shape {
         float offsetX;
         float offsetY;
         float rotation;
-    } uvTransform;
+    } _uvTransform;
 
-    Matrix2D cachedGlobalMatrix;
-    bool isDirty = true;
+    Matrix2D _cachedGlobalMatrix;
+    bool _isDirty = true;
 
-    std::unique_ptr<Collider> collider;
+    std::unique_ptr<Collider> _collider;
 
-    // Protected helper methods
     std::pair<int, int> getTransformedPosition(int inputX, int inputY);
     PaintCtx makePaintCtx() const;
 
     void updateTrigCache();
     void updateTextureTrigCache();
 
-    float tex_A, tex_B, tex_C;
-    float tex_D, tex_E, tex_F;
+    float _tex_A, _tex_B, _tex_C;
+    float _tex_D, _tex_E, _tex_F;
 
     void updateTextureMatrix();
 
@@ -97,20 +95,18 @@ class Shape {
     Shape(const Shape &) = delete;
     Shape &operator=(const Shape &) = delete;
 
-    Matrix2D getLocalMatrix();
-    Matrix2D getGlobalMatrix();
+    Matrix2D localMatrix();
+    Matrix2D globalMatrix();
 
-    // Pure virtual methods
     virtual void drawAntiAliased(Display &pixels) = 0;
     virtual void drawAliased(Display &pixels) = 0;
     virtual std::unique_ptr<Collider> defaultCollider() = 0;
 
-    virtual void markDirty() { isDirty = true; };
+    virtual void markDirty() { _isDirty = true; };
 
-    // Drawing
     void draw(Display &pixels, const DrawOptions &options);
 
-    // Position and transformation methods
+    // Transformation
     void setPosition(int x, int y);
     void translate(int dx, int dy);
     void translate(float dx, float dy);
@@ -123,98 +119,94 @@ class Shape {
     void scaleY(float scaleY, float originY = -1);
     void setScaleOrigin(int x, int y);
 
-    // Collider methods
+    // Collider
     void addCollider(std::unique_ptr<Collider> collider = nullptr);
     void removeCollider();
     bool intersects(const std::shared_ptr<Shape> &other);
 
-    // Texture methods
+    // Texture
     void setTexture(Texture *texture);
     void setTextureScale(float scaleX, float scaleY);
     void setTextureOffset(float offsetX, float offsetY);
     void setTextureRotation(float rotation);
     void setFixTexture(bool fixed);
 
-    // Parent-child relationship
     void setParent(Shape *parent);
 
-    // Cache invalidation
-    void invalidateTrigCache() { trigCacheValid = false; }
-    void invalidateTexTrigCache() { texTrigCacheValid = false; }
+    void invalidateTrigCache() { _trigCacheValid = false; }
+    void invalidateTexTrigCache() { _texTrigCacheValid = false; }
 
-    // Getters
-    float getX() const { return x; }
-    float getY() const { return y; }
-    int getZ() const { return z; }
-    const Color &getColor() const { return color; }
+    // Accessors
+    float x() const { return _x; }
+    float y() const { return _y; }
+    int z() const { return _z; }
+    const Color &color() const { return _color; }
 
-    float getRotationAngle() const { return rotation.angle; }
-    int getRotationX() const { return rotation.x; }
-    int getRotationY() const { return rotation.y; }
+    float rotationAngle() const { return _rotation.angle; }
+    int rotationX() const { return _rotation.x; }
+    int rotationY() const { return _rotation.y; }
 
-    float getScaleX() const { return scale.x; }
-    float getScaleY() const { return scale.y; }
-    int getScaleOriginX() const { return scale.originX; }
-    int getScaleOriginY() const { return scale.originY; }
+    float scaleX() const { return _scale.x; }
+    float scaleY() const { return _scale.y; }
+    int scaleOriginX() const { return _scale.originX; }
+    int scaleOriginY() const { return _scale.originY; }
 
-    Texture *getTexture() const { return texture; }
-    bool getFixTexture() const { return fixTexture; }
+    Texture *texture() const { return _texture; }
+    bool fixTexture() const { return _fixTexture; }
 
-    float getUVScaleX() const { return uvTransform.scaleX; }
-    float getUVScaleY() const { return uvTransform.scaleY; }
-    float getUVOffsetX() const { return uvTransform.offsetX; }
-    float getUVOffsetY() const { return uvTransform.offsetY; }
-    float getUVRotation() const { return uvTransform.rotation; }
+    float uvScaleX() const { return _uvTransform.scaleX; }
+    float uvScaleY() const { return _uvTransform.scaleY; }
+    float uvOffsetX() const { return _uvTransform.offsetX; }
+    float uvOffsetY() const { return _uvTransform.offsetY; }
+    float uvRotation() const { return _uvTransform.rotation; }
 
-    Collider *getCollider() const { return collider.get(); }
-    Shape *getParent() const { return parent; }
+    Collider *collider() const { return _collider.get(); }
+    Shape *parent() const { return _parent; }
 
     // Setters
     void setX(int x) {
-        this->x = x;
-        if (collider) {
-            collider->setX(x);
-        }
+        _x = x;
+        if (_collider)
+            _collider->setX(x);
     }
 
     void setY(int y) {
-        this->y = y;
-        if (collider) {
-            collider->setY(y);
-        }
+        _y = y;
+        if (_collider)
+            _collider->setY(y);
     }
 
-    void setColor(const Color &color) { this->color = color; }
+    void setColor(const Color &color) { _color = color; }
     void setZ(int z);
 
     void setRotationAngle(float angle) {
-        this->rotation.angle = angle;
-        if (this->collider)
-            this->collider->setRotation(angle);
+        _rotation.angle = angle;
+        if (_collider)
+            _collider->setRotation(angle);
     }
 
-    void setRotationX(int x) { this->rotation.x = x; }
-    void setRotationY(int y) { this->rotation.y = y; }
+    void setRotationX(int x) { _rotation.x = x; }
+    void setRotationY(int y) { _rotation.y = y; }
 
-    void setScaleX(float scaleX) { this->scale.x = scaleX; }
-    void setScaleY(float scaleY) { this->scale.y = scaleY; }
-    void setScaleOriginX(int x) { this->scale.originX = x; }
-    void setScaleOriginY(int y) { this->scale.originY = y; }
+    void setScaleX(float scaleX) { _scale.x = scaleX; }
+    void setScaleY(float scaleY) { _scale.y = scaleY; }
+    void setScaleOriginX(int x) { _scale.originX = x; }
+    void setScaleOriginY(int y) { _scale.originY = y; }
 
     void setUVScaleX(float scaleX) {
-        this->uvTransform.scaleX = scaleX;
-        this->uvTransform.invScaleX = 1.0f / scaleX;
+        _uvTransform.scaleX = scaleX;
+        _uvTransform.invScaleX = 1.0f / scaleX;
     }
 
     void setUVScaleY(float scaleY) {
-        this->uvTransform.scaleY = scaleY;
-        this->uvTransform.invScaleY = 1.0f / scaleY;
+        _uvTransform.scaleY = scaleY;
+        _uvTransform.invScaleY = 1.0f / scaleY;
     }
 
-    void setUVOffsetX(float offsetX) { this->uvTransform.offsetX = offsetX; }
-    void setUVOffsetY(float offsetY) { this->uvTransform.offsetY = offsetY; }
+    void setUVOffsetX(float offsetX) { _uvTransform.offsetX = offsetX; }
+    void setUVOffsetY(float offsetY) { _uvTransform.offsetY = offsetY; }
     void setUVRotation(float rotation) {
-        this->uvTransform.rotation = rotation;
+        _uvTransform.rotation = rotation;
         invalidateTexTrigCache();
     }
 };

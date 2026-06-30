@@ -12,7 +12,7 @@ struct CircleParams : public ShapeParams {
 
 class Circle : public Shape {
   private:
-    int radius;
+    int _radius;
     bool fill;
 
   public:
@@ -20,7 +20,7 @@ class Circle : public Shape {
     std::unique_ptr<Collider> defaultCollider() override;
     void drawAntiAliased(Display &displayGrid) override;
     void drawAliased(Display &displayGrid) override;
-    int getRadius() const;
+    int radius() const;
 
   private:
     void drawHorizontalLine(Display &displayGrid, int x1, int x2, int y,

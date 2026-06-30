@@ -26,10 +26,10 @@ struct RegularPolygonRadiusParams : public ShapeParams {
 
 class RegularPolygon : public Shape {
   private:
-    int sides;
+    int _sides;
     bool useSideLength;
     int sideLength;
-    int radius;
+    int _radius;
     bool fill;
 
     std::vector<std::pair<float, float>> localVertices;
@@ -41,8 +41,8 @@ class RegularPolygon : public Shape {
     std::unique_ptr<Collider> defaultCollider() override;
     void drawAntiAliased(Display &displayGrid) override;
     void drawAliased(Display &displayGrid) override;
-    int getSides() const;
-    int getRadius();
+    int sides() const;
+    int radius();
 
     void setSides(int sides);
     void setRadius(int radius);

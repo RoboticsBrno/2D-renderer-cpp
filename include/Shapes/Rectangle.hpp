@@ -15,8 +15,8 @@ struct RectangleParams : public ShapeParams {
 
 class Rectangle : public Shape {
   private:
-    int width;
-    int height;
+    int _width;
+    int _height;
     bool fill;
 
   public:
@@ -24,8 +24,8 @@ class Rectangle : public Shape {
     std::unique_ptr<Collider> defaultCollider() override;
     void drawAntiAliased(Display &displayGrid) override;
     void drawAliased(Display &displayGrid) override;
-    int getWidth() const { return width; }
-    int getHeight() const { return height; }
+    int width() const { return _width; }
+    int height() const { return _height; }
 
   private:
     std::array<std::pair<int, int>, 4> getVertices();
