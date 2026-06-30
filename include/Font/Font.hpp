@@ -22,8 +22,8 @@ class Font {
     Font() = default;
 
     const Glyph *getGlyph(char c) const;
-    uint8_t getHeight() const { return 7; } // Standard height
+    uint8_t getHeight() const { return 7; }
     uint8_t getCharWidth(char c) const;
-    uint8_t getCharSpacing(char c) const; // Get spacing after character};
+    uint8_t getCharSpacing(char c) const;
 };
 extern Font defaultFont;

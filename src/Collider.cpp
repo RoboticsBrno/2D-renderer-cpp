@@ -3,7 +3,6 @@
 #include <cmath>
 #include <vector>
 
-// --- Helper Functions ---
 static std::vector<std::pair<int, int>>
 getRegularPolyVertices(const RegularPolygonCollider *rp) {
     std::vector<std::pair<int, int>> vertices;
@@ -56,8 +55,6 @@ bool IntersectionVisitor::checkPolygonVsPolygon(
     }
     return false;
 }
-
-// --- Visitor Dispatch Implementations ---
 
 bool IntersectionVisitor::visitCircle(const CircleCollider *circle) {
     switch (other->getType()) {
@@ -201,8 +198,6 @@ bool IntersectionVisitor::visitRegularPolygon(
         return false;
     }
 }
-
-// --- Specific Collision Implementations ---
 
 bool IntersectionVisitor::circleCircle(const CircleCollider *c1,
                                        const CircleCollider *c2) {

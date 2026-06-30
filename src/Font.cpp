@@ -1,6 +1,5 @@
 #include "Font/Font.hpp"
 
-// Font data with proper widths for each character
 const uint8_t Font::FONT_DATA[] = {
     // Numbers (width: 5)
     0x0E, 0x11, 0x13, 0x15, 0x19, 0x11, 0x0E, // '0'
@@ -174,7 +173,7 @@ const Font::Glyph* Font::getGlyph(char c) const {
 
 uint8_t Font::getCharWidth(char c) const {
     const Glyph* glyph = getGlyph(c);
-    return glyph ? glyph->width : 4; // Default width for unknown chars
+    return glyph ? glyph->width : 4;
 }
 
 uint8_t Font::getCharSpacing(char c) const {
@@ -186,7 +185,7 @@ uint8_t Font::getCharSpacing(char c) const {
         case 1: return 2; // Very narrow chars get more spacing
         case 2: return 2;
         case 3: return 1;
-        default: return 1; // Normal spacing for wider chars
+        default: return 1;
     }
 }
 

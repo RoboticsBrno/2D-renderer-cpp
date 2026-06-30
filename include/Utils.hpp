@@ -4,8 +4,6 @@
 #include <cstdlib>
 #include <vector>
 
-// ---- Platform logging -------------------------------------------------------
-
 #ifdef ESP_PLATFORM
 #include "esp_log.h"
 #define RENDERER_LOGE(tag, fmt, ...) ESP_LOGE(tag, fmt, ##__VA_ARGS__)
@@ -16,8 +14,6 @@
 #define RENDERER_LOGI(tag, fmt, ...) fprintf(stderr, "[I][%s] " fmt "\n", tag, ##__VA_ARGS__)
 #define RENDERER_LOGW(tag, fmt, ...) fprintf(stderr, "[W][%s] " fmt "\n", tag, ##__VA_ARGS__)
 #endif
-
-// ---- Pixel buffer allocator -------------------------------------------------
 
 #ifdef ESP_PLATFORM
 #include "esp_heap_caps.h"
@@ -46,8 +42,6 @@ template <class T> struct PsramAllocator {
 #include <memory>
 template <class T> using PsramAllocator = std::allocator<T>;
 #endif
-
-// ---- Core types -------------------------------------------------------------
 
 struct Color {
     uint8_t r;
@@ -80,4 +74,4 @@ static const Color BLUE(0, 0, 255);
 static const Color YELLOW(255, 255, 0);
 static const Color MAGENTA(255, 0, 255);
 static const Color CYAN(0, 255, 255);
-} // namespace Colors
+}

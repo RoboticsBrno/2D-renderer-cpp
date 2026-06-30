@@ -106,7 +106,6 @@ class Shape {
 
     void draw(Display &pixels, const DrawOptions &options);
 
-    // Transformation
     void setPosition(int x, int y);
     void translate(int dx, int dy);
     void translate(float dx, float dy);
@@ -119,12 +118,10 @@ class Shape {
     void scaleY(float scaleY, float originY = -1);
     void setScaleOrigin(int x, int y);
 
-    // Collider
     void addCollider(std::unique_ptr<Collider> collider = nullptr);
     void removeCollider();
     bool intersects(const std::shared_ptr<Shape> &other);
 
-    // Texture
     void setTexture(Texture *texture);
     void setTextureScale(float scaleX, float scaleY);
     void setTextureOffset(float offsetX, float offsetY);
@@ -136,7 +133,6 @@ class Shape {
     void invalidateTrigCache() { _trigCacheValid = false; }
     void invalidateTexTrigCache() { _texTrigCacheValid = false; }
 
-    // Accessors
     float x() const { return _x; }
     float y() const { return _y; }
     int z() const { return _z; }
@@ -163,7 +159,6 @@ class Shape {
     Collider *collider() const { return _collider.get(); }
     Shape *parent() const { return _parent; }
 
-    // Setters
     void setX(int x) {
         _x = x;
         if (_collider)

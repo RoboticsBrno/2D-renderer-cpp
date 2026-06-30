@@ -131,7 +131,7 @@ inline bool lineIntersectLine(int x1, int y1, int x2, int y2, int x3, int y3,
 
     return ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1;
 }
-} // namespace CollisionMath
+}
 
 class IntersectionVisitor : public CollisionVisitor {
   private:
@@ -321,7 +321,7 @@ class RegularPolygonCollider : public Collider {
     int getSides() const { return sides; }
     int getRadius() const { return radius; }
 
-    // Returns degrees directly
+
     float getRotation() const { return rotation; }
 
     bool accept(CollisionVisitor *visitor) const override {
